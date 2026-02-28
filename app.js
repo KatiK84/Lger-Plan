@@ -1,4 +1,5 @@
 const STORAGE_KEY = "lager-plan-v1";
+const WORK_DAYS_PER_WEEK = 5;
 const DEFAULT_TASK_TYPES = [
   "Приход товара",
   "Уход товара",
@@ -70,6 +71,8 @@ const refs = {
 
   calcSummary: document.getElementById("calcSummary"),
   calcStatus: document.getElementById("calcStatus"),
+  calcWeekSummary: document.getElementById("calcWeekSummary"),
+  calcWeekStatus: document.getElementById("calcWeekStatus"),
 };
 
 init();
@@ -107,6 +110,7 @@ function onSaveSettings() {
   state.settings.hoursPerDay = toNumber(refs.hoursPerDay.value);
   persist();
   renderDayAndCalc();
+  renderWeekCalc();
 }
 
 function onAddEmployee(event) {
@@ -249,6 +253,7 @@ function onAddWeekTask(event) {
 
   persist();
   renderWeekTasks();
+  renderWeekCalc();
 }
 
 function onWeekTasksTableClick(event) {
@@ -262,6 +267,7 @@ function onWeekTasksTableClick(event) {
 
   persist();
   renderWeekTasks();
+  renderWeekCalc();
 }
 
 function onPrintEmployeePlan() {
@@ -352,6 +358,7 @@ function renderAll() {
   renderTaskTypeOptions();
   renderDayAndCalc();
   renderWeekTasks();
+  renderWeekCalc();
 }
 
 function renderSettings() {
@@ -529,10 +536,65 @@ function renderDayCalc() {
   refs.calcStatus.textContent = messages.join(" | ");
 }
 
+function renderWeekCalc() {
+  const weekTasks = state.weekTasks;
+
+  const menCapacity = state.settings.menCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
+  const womenCapacity = state.settings.womenCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
+
+  const menOnly = sumLoad(weekTasks, "m");
+  const womenOnly = sumLoad(weekTasks, "w");
+  const bothReq = sumLoad(weekTasks, "both");
+
+  const menFreeBeforeBoth = menCapacity - menOnly;
+  const womenFreeBeforeBoth = womenCapacity - womenOnly;
+
+  const usedWomenForBoth = Math.max(0, Math.min(womenFreeBeforeBoth, bothReq));
+  let bothLeft = bothReq - usedWomenForBoth;
+
+  const usedMenForBoth = Math.max(0, Math.min(menFreeBeforeBoth, bothLeft));
+  bothLeft -= usedMenForBoth;
+
+  const menRemain = menFreeBeforeBoth - usedMenForBoth;
+  const womenRemain = womenFreeBeforeBoth - usedWomenForBoth;
+
+  refs.calcWeekSummary.innerHTML = [
+    summaryItem("Мужские часы (доступно за неделю)", fmt(menCapacity)),
+    summaryItem("Женские часы (доступно за неделю)", fmt(womenCapacity)),
+    summaryItem("Задачи 'оба' (требуется)", fmt(bothReq)),
+    summaryItem("Только мужские задачи", fmt(menOnly)),
+    summaryItem("Только женские задачи", fmt(womenOnly)),
+    summaryItem("Остаток мужских часов", fmt(menRemain)),
+    summaryItem("Остаток женских часов", fmt(womenRemain)),
+    summaryItem("Из 'оба' покрыто женскими", fmt(usedWomenForBoth)),
+    summaryItem("Из 'оба' покрыто мужскими", fmt(usedMenForBoth)),
+  ].join("");
+
+  const messages = [];
+  if (menOnly > menCapacity) {
+    messages.push(`Не хватает мужских часов: ${fmt(menOnly - menCapacity)}`);
+  }
+  if (womenOnly > womenCapacity) {
+    messages.push(`Не хватает женских часов: ${fmt(womenOnly - womenCapacity)}`);
+  }
+  if (bothLeft > 0) {
+    messages.push(`Не хватает часов для задач 'оба': ${fmt(bothLeft)}`);
+  }
+
+  if (messages.length === 0) {
+    refs.calcWeekStatus.className = "status ok";
+    refs.calcWeekStatus.textContent = "OK: недельная загрузка покрыта.";
+    return;
+  }
+
+  refs.calcWeekStatus.className = "status warn";
+  refs.calcWeekStatus.textContent = messages.join(" | ");
+}
+
 function sumLoad(tasks, restriction) {
   return tasks
     .filter((task) => task.restriction === restriction)
-    .reduce((sum, task) => sum + task.hours * task.minPeople, 0);
+    .reduce((sum, task) => sum + task.hours * (task.minPeople ?? 1), 0);
 }
 
 function getEmployeeById(employeeId) {
