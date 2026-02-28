@@ -86,13 +86,24 @@ select {
   margin-bottom: 12px;
 }
 
-.inline-form.wrap {
-  grid-template-columns: 1fr 0.6fr 0.45fr 0.45fr 1fr auto;
+.inline-form.day-form {
+  grid-template-columns: 1fr 1fr 0.7fr 1fr auto;
+}
+
+.inline-form.week-form {
+  grid-template-columns: 1fr 0.7fr 1fr auto;
 }
 
 .grid3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -185,6 +196,27 @@ td.num {
   color: var(--warn);
 }
 
+.calc-breakdown {
+  margin-top: 10px;
+}
+
+.calc-breakdown h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.breakdown-table {
+  width: 100%;
+}
+
+.breakdown-empty {
+  background: #f8fbfa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--muted);
+}
+
 .settings-details {
   border-radius: 8px;
 }
@@ -233,8 +265,10 @@ td.num {
 
 @media (max-width: 980px) {
   .inline-form,
-  .inline-form.wrap,
+  .inline-form.day-form,
+  .inline-form.week-form,
   .grid3,
+  .grid2,
   .calc-grid {
     grid-template-columns: 1fr;
   }

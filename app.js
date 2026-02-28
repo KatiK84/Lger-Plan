@@ -17,16 +17,15 @@ const DEFAULT_TASK_TYPES = [
 
 const defaultState = {
   settings: {
-    menCount: 5,
-    womenCount: 2,
+    staffCount: 7,
     hoursPerDay: 9,
   },
   employees: [
-    { id: id(), name: "Иван", gender: "m" },
-    { id: id(), name: "Александр", gender: "m" },
-    { id: id(), name: "Игорь", gender: "m" },
-    { id: id(), name: "Олена", gender: "w" },
-    { id: id(), name: "Денис", gender: "m" },
+    { id: id(), name: "Иван" },
+    { id: id(), name: "Александр" },
+    { id: id(), name: "Игорь" },
+    { id: id(), name: "Олена" },
+    { id: id(), name: "Денис" },
   ],
   taskTypes: [...DEFAULT_TASK_TYPES],
   dayTasks: [],
@@ -36,26 +35,24 @@ const defaultState = {
 let state = loadState();
 
 const refs = {
-  menCount: document.getElementById("menCount"),
-  womenCount: document.getElementById("womenCount"),
+  staffCount: document.getElementById("staffCount"),
   hoursPerDay: document.getElementById("hoursPerDay"),
   saveSettingsBtn: document.getElementById("saveSettingsBtn"),
 
   employeeForm: document.getElementById("employeeForm"),
   employeeName: document.getElementById("employeeName"),
-  employeeGender: document.getElementById("employeeGender"),
   employeesBody: document.getElementById("employeesBody"),
+
   taskTypeForm: document.getElementById("taskTypeForm"),
   taskTypeName: document.getElementById("taskTypeName"),
   taskTypesBody: document.getElementById("taskTypesBody"),
 
   selectedDate: document.getElementById("selectedDate"),
   dayEmployeeFilter: document.getElementById("dayEmployeeFilter"),
-  dayRestrictionFilter: document.getElementById("dayRestrictionFilter"),
+  dayTaskTypeFilter: document.getElementById("dayTaskTypeFilter"),
   dayTaskForm: document.getElementById("dayTaskForm"),
   dayEmployee: document.getElementById("dayEmployee"),
   dayTaskType: document.getElementById("dayTaskType"),
-  dayRestriction: document.getElementById("dayRestriction"),
   dayHours: document.getElementById("dayHours"),
   dayOrder: document.getElementById("dayOrder"),
   dayTasksBody: document.getElementById("dayTasksBody"),
@@ -63,13 +60,14 @@ const refs = {
 
   weekTaskForm: document.getElementById("weekTaskForm"),
   weekTaskType: document.getElementById("weekTaskType"),
-  weekRestriction: document.getElementById("weekRestriction"),
   weekHours: document.getElementById("weekHours"),
   weekComment: document.getElementById("weekComment"),
   weekTasksBody: document.getElementById("weekTasksBody"),
 
   calcSummary: document.getElementById("calcSummary"),
+  calcTaskTypeBreakdown: document.getElementById("calcTaskTypeBreakdown"),
   calcStatus: document.getElementById("calcStatus"),
+
   calcWeekSummary: document.getElementById("calcWeekSummary"),
   calcWeekStatus: document.getElementById("calcWeekStatus"),
 };
@@ -88,12 +86,13 @@ function bindEvents() {
 
   refs.employeeForm.addEventListener("submit", onAddEmployee);
   refs.employeesBody.addEventListener("click", onEmployeesTableClick);
+
   refs.taskTypeForm.addEventListener("submit", onAddTaskType);
   refs.taskTypesBody.addEventListener("click", onTaskTypesTableClick);
 
   refs.selectedDate.addEventListener("change", renderDayAndCalc);
   refs.dayEmployeeFilter.addEventListener("change", renderDayTasks);
-  refs.dayRestrictionFilter.addEventListener("change", renderDayTasks);
+  refs.dayTaskTypeFilter.addEventListener("change", renderDayTasks);
 
   refs.dayTaskForm.addEventListener("submit", onAddDayTask);
   refs.dayTasksBody.addEventListener("click", onDayTasksTableClick);
@@ -104,9 +103,8 @@ function bindEvents() {
 }
 
 function onSaveSettings() {
-  state.settings.menCount = toNumber(refs.menCount.value);
-  state.settings.womenCount = toNumber(refs.womenCount.value);
-  state.settings.hoursPerDay = toNumber(refs.hoursPerDay.value);
+  state.settings.staffCount = Math.max(0, Math.floor(toNumber(refs.staffCount.value)));
+  state.settings.hoursPerDay = Math.max(0, toNumber(refs.hoursPerDay.value));
   persist();
   renderDayAndCalc();
   renderWeekCalc();
@@ -122,7 +120,6 @@ function onAddEmployee(event) {
   state.employees.push({
     id: id(),
     name,
-    gender: refs.employeeGender.value,
   });
 
   refs.employeeForm.reset();
@@ -137,7 +134,7 @@ function onEmployeesTableClick(event) {
   }
 
   const employeeId = button.dataset.id;
-  state.employees = state.employees.filter((emp) => emp.id !== employeeId);
+  state.employees = state.employees.filter((employee) => employee.id !== employeeId);
   state.dayTasks = state.dayTasks.filter((task) => task.employeeId !== employeeId);
   persist();
   renderAll();
@@ -150,9 +147,7 @@ function onAddTaskType(event) {
     return;
   }
 
-  const exists = state.taskTypes.some(
-    (type) => type.toLowerCase() === taskTypeName.toLowerCase(),
-  );
+  const exists = state.taskTypes.some((type) => type.toLowerCase() === taskTypeName.toLowerCase());
   if (exists) {
     window.alert("Такой тип задачи уже есть.");
     return;
@@ -163,6 +158,8 @@ function onAddTaskType(event) {
   persist();
   renderTaskTypes();
   renderTaskTypeOptions();
+  renderDayAndCalc();
+  renderWeekCalc();
 }
 
 function onTaskTypesTableClick(event) {
@@ -186,6 +183,8 @@ function onTaskTypesTableClick(event) {
   persist();
   renderTaskTypes();
   renderTaskTypeOptions();
+  renderDayAndCalc();
+  renderWeekCalc();
 }
 
 function onAddDayTask(event) {
@@ -202,13 +201,11 @@ function onAddDayTask(event) {
     date: refs.selectedDate.value,
     employeeId,
     taskType,
-    restriction: refs.dayRestriction.value,
     hours: Math.max(0, toNumber(refs.dayHours.value)),
     orderComment: refs.dayOrder.value.trim(),
   });
 
   refs.dayTaskForm.reset();
-  refs.dayRestriction.value = "both";
   renderEmployeeOptions();
   renderTaskTypeOptions();
 
@@ -239,13 +236,11 @@ function onAddWeekTask(event) {
   state.weekTasks.push({
     id: id(),
     taskType,
-    restriction: refs.weekRestriction.value,
     hours: Math.max(0, toNumber(refs.weekHours.value)),
     comment: refs.weekComment.value.trim(),
   });
 
   refs.weekTaskForm.reset();
-  refs.weekRestriction.value = "both";
   renderTaskTypeOptions();
 
   persist();
@@ -288,18 +283,13 @@ function onPrintEmployeePlan() {
 
   const rows = state.dayTasks
     .filter((task) => task.date === selectedDate && task.employeeId === employeeId)
-    .map((task) => {
-      const total = task.hours;
-      return `
-        <tr>
-          <td>${escapeHtml(getTaskLabel(task))}</td>
-          <td>${restrictionLabel(task.restriction)}</td>
-          <td>${fmt(task.hours)}</td>
-          <td>${fmt(total)}</td>
-          <td>${escapeHtml(task.orderComment || "-")}</td>
-        </tr>
-      `;
-    })
+    .map((task) => `
+      <tr>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td>${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.orderComment || "-")}</td>
+      </tr>
+    `)
     .join("");
 
   const win = window.open("", "_blank", "width=980,height=740");
@@ -329,13 +319,11 @@ function onPrintEmployeePlan() {
           <thead>
             <tr>
               <th>Задача</th>
-              <th>м/ж/оба</th>
-              <th>Время</th>
-              <th>Общее время</th>
+              <th>Планируемое время</th>
               <th>Номер / комментарий</th>
             </tr>
           </thead>
-          <tbody>${rows || "<tr><td colspan='5'>Нет задач на выбранную дату</td></tr>"}</tbody>
+          <tbody>${rows || "<tr><td colspan='3'>Нет задач на выбранную дату</td></tr>"}</tbody>
         </table>
       </body>
     </html>
@@ -357,8 +345,7 @@ function renderAll() {
 }
 
 function renderSettings() {
-  refs.menCount.value = state.settings.menCount;
-  refs.womenCount.value = state.settings.womenCount;
+  refs.staffCount.value = state.settings.staffCount;
   refs.hoursPerDay.value = state.settings.hoursPerDay;
 }
 
@@ -368,7 +355,6 @@ function renderEmployees() {
       (employee) => `
       <tr>
         <td>${escapeHtml(employee.name)}</td>
-        <td>${employee.gender === "m" ? "м" : "ж"}</td>
         <td>
           <button class="btn danger" data-id="${employee.id}" type="button">Удалить</button>
         </td>
@@ -398,21 +384,31 @@ function renderEmployeeOptions() {
     .map((employee) => `<option value="${employee.id}">${escapeHtml(employee.name)}</option>`)
     .join("");
 
-  refs.dayEmployee.innerHTML = options;
-
+  const currentDayEmployee = refs.dayEmployee.value;
   const currentFilter = refs.dayEmployeeFilter.value || "all";
+
+  refs.dayEmployee.innerHTML = options;
   refs.dayEmployeeFilter.innerHTML = `<option value="all">все</option>${options}`;
 
-  refs.dayEmployeeFilter.value = state.employees.some((e) => e.id === currentFilter)
+  if (state.employees.some((employee) => employee.id === currentDayEmployee)) {
+    refs.dayEmployee.value = currentDayEmployee;
+  }
+
+  refs.dayEmployeeFilter.value = state.employees.some((employee) => employee.id === currentFilter)
     ? currentFilter
     : "all";
 }
 
 function renderTaskTypeOptions() {
+  const currentDayTaskType = refs.dayTaskType.value;
+  const currentWeekTaskType = refs.weekTaskType.value;
+  const currentTypeFilter = refs.dayTaskTypeFilter.value || "all";
+
   if (state.taskTypes.length === 0) {
     const emptyOption = "<option value=\"\">Сначала добавьте тип задачи</option>";
     refs.dayTaskType.innerHTML = emptyOption;
     refs.weekTaskType.innerHTML = emptyOption;
+    refs.dayTaskTypeFilter.innerHTML = "<option value=\"all\">все</option>";
     return;
   }
 
@@ -422,6 +418,17 @@ function renderTaskTypeOptions() {
 
   refs.dayTaskType.innerHTML = options;
   refs.weekTaskType.innerHTML = options;
+  refs.dayTaskTypeFilter.innerHTML = `<option value="all">все</option>${options}`;
+
+  if (state.taskTypes.includes(currentDayTaskType)) {
+    refs.dayTaskType.value = currentDayTaskType;
+  }
+
+  if (state.taskTypes.includes(currentWeekTaskType)) {
+    refs.weekTaskType.value = currentWeekTaskType;
+  }
+
+  refs.dayTaskTypeFilter.value = state.taskTypes.includes(currentTypeFilter) ? currentTypeFilter : "all";
 }
 
 function renderDayAndCalc() {
@@ -432,24 +439,21 @@ function renderDayAndCalc() {
 function renderDayTasks() {
   const selectedDate = refs.selectedDate.value;
   const employeeFilter = refs.dayEmployeeFilter.value;
-  const restrictionFilter = refs.dayRestrictionFilter.value;
+  const taskTypeFilter = refs.dayTaskTypeFilter.value;
 
   const filteredTasks = state.dayTasks
     .filter((task) => task.date === selectedDate)
     .filter((task) => (employeeFilter === "all" ? true : task.employeeId === employeeFilter))
-    .filter((task) => (restrictionFilter === "all" ? true : task.restriction === restrictionFilter));
+    .filter((task) => (taskTypeFilter === "all" ? true : getTaskLabel(task) === taskTypeFilter));
 
   refs.dayTasksBody.innerHTML = filteredTasks
     .map((task) => {
       const employee = getEmployeeById(task.employeeId);
-      const total = task.hours;
       return `
         <tr>
           <td>${escapeHtml(employee?.name || "-")}</td>
           <td>${escapeHtml(getTaskLabel(task))}</td>
-          <td>${restrictionLabel(task.restriction)}</td>
           <td class="num">${fmt(task.hours)}</td>
-          <td class="num">${fmt(total)}</td>
           <td>${escapeHtml(task.orderComment || "-")}</td>
           <td><button class="btn danger" data-id="${task.id}" type="button">Удалить</button></td>
         </tr>
@@ -464,7 +468,6 @@ function renderWeekTasks() {
       (task) => `
       <tr>
         <td>${escapeHtml(getTaskLabel(task))}</td>
-        <td>${restrictionLabel(task.restriction)}</td>
         <td class="num">${fmt(task.hours)}</td>
         <td>${escapeHtml(task.comment || "-")}</td>
         <td><button class="btn danger" data-id="${task.id}" type="button">Удалить</button></td>
@@ -478,117 +481,101 @@ function renderDayCalc() {
   const selectedDate = refs.selectedDate.value;
   const dayTasks = state.dayTasks.filter((task) => task.date === selectedDate);
 
-  const menCapacity = state.settings.menCount * state.settings.hoursPerDay;
-  const womenCapacity = state.settings.womenCount * state.settings.hoursPerDay;
-
-  const menOnly = sumLoad(dayTasks, "m");
-  const womenOnly = sumLoad(dayTasks, "w");
-  const bothReq = sumLoad(dayTasks, "both");
-
-  const menFreeBeforeBoth = menCapacity - menOnly;
-  const womenFreeBeforeBoth = womenCapacity - womenOnly;
-
-  const usedWomenForBoth = Math.max(0, Math.min(womenFreeBeforeBoth, bothReq));
-  let bothLeft = bothReq - usedWomenForBoth;
-
-  const usedMenForBoth = Math.max(0, Math.min(menFreeBeforeBoth, bothLeft));
-  bothLeft -= usedMenForBoth;
-
-  const menRemain = menFreeBeforeBoth - usedMenForBoth;
-  const womenRemain = womenFreeBeforeBoth - usedWomenForBoth;
+  const availableHours = state.settings.staffCount * state.settings.hoursPerDay;
+  const plannedHours = sumHours(dayTasks);
+  const remainingHours = availableHours - plannedHours;
 
   refs.calcSummary.innerHTML = [
-    summaryItem("Мужские часы (доступно)", fmt(menCapacity)),
-    summaryItem("Женские часы (доступно)", fmt(womenCapacity)),
-    summaryItem("Задачи 'оба' (требуется)", fmt(bothReq)),
-    summaryItem("Только мужские задачи", fmt(menOnly)),
-    summaryItem("Только женские задачи", fmt(womenOnly)),
-    summaryItem("Остаток мужских часов", fmt(menRemain)),
-    summaryItem("Остаток женских часов", fmt(womenRemain)),
-    summaryItem("Из 'оба' покрыто женскими", fmt(usedWomenForBoth)),
-    summaryItem("Из 'оба' покрыто мужскими", fmt(usedMenForBoth)),
+    summaryItem("Сотрудников в смене", fmt(state.settings.staffCount)),
+    summaryItem("Доступно часов", fmt(availableHours)),
+    summaryItem("Запланировано часов", fmt(plannedHours)),
+    summaryItem(remainingHours >= 0 ? "Остаток часов" : "Дефицит часов", fmt(Math.abs(remainingHours))),
   ].join("");
 
-  const messages = [];
-  if (menOnly > menCapacity) {
-    messages.push(`Не хватает мужских часов: ${fmt(menOnly - menCapacity)}`);
-  }
-  if (womenOnly > womenCapacity) {
-    messages.push(`Не хватает женских часов: ${fmt(womenOnly - womenCapacity)}`);
-  }
-  if (bothLeft > 0) {
-    messages.push(`Не хватает часов для задач 'оба': ${fmt(bothLeft)}`);
-  }
+  renderDailyBreakdown(dayTasks);
 
-  if (messages.length === 0) {
+  if (plannedHours <= availableHours) {
     refs.calcStatus.className = "status ok";
-    refs.calcStatus.textContent = "OK: загрузка покрыта.";
+    refs.calcStatus.textContent = "OK: доступных часов хватает на все задачи.";
     return;
   }
 
   refs.calcStatus.className = "status warn";
-  refs.calcStatus.textContent = messages.join(" | ");
+  refs.calcStatus.textContent = `Не хватает часов: ${fmt(plannedHours - availableHours)}.`;
+}
+
+function renderDailyBreakdown(dayTasks) {
+  const grouped = groupHoursByTaskType(dayTasks);
+
+  if (grouped.length === 0) {
+    refs.calcTaskTypeBreakdown.innerHTML = "<div class=\"breakdown-empty\">На выбранную дату задач нет.</div>";
+    return;
+  }
+
+  const rows = grouped
+    .map(
+      (item) => `
+      <tr>
+        <td>${escapeHtml(item.taskType)}</td>
+        <td class="num">${fmt(item.hours)}</td>
+      </tr>
+    `,
+    )
+    .join("");
+
+  refs.calcTaskTypeBreakdown.innerHTML = `
+    <h3>Загрузка по типам задач</h3>
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th>Тип задачи</th>
+          <th>Планируемое время</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
 }
 
 function renderWeekCalc() {
-  const weekTasks = state.weekTasks;
-
-  const menCapacity = state.settings.menCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
-  const womenCapacity = state.settings.womenCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
-
-  const menOnly = sumLoad(weekTasks, "m");
-  const womenOnly = sumLoad(weekTasks, "w");
-  const bothReq = sumLoad(weekTasks, "both");
-
-  const menFreeBeforeBoth = menCapacity - menOnly;
-  const womenFreeBeforeBoth = womenCapacity - womenOnly;
-
-  const usedWomenForBoth = Math.max(0, Math.min(womenFreeBeforeBoth, bothReq));
-  let bothLeft = bothReq - usedWomenForBoth;
-
-  const usedMenForBoth = Math.max(0, Math.min(menFreeBeforeBoth, bothLeft));
-  bothLeft -= usedMenForBoth;
-
-  const menRemain = menFreeBeforeBoth - usedMenForBoth;
-  const womenRemain = womenFreeBeforeBoth - usedWomenForBoth;
+  const plannedWeekHours = sumHours(state.weekTasks);
+  const availableWeekHours = state.settings.staffCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
+  const remainingWeekHours = availableWeekHours - plannedWeekHours;
 
   refs.calcWeekSummary.innerHTML = [
-    summaryItem("Мужские часы (доступно за неделю)", fmt(menCapacity)),
-    summaryItem("Женские часы (доступно за неделю)", fmt(womenCapacity)),
-    summaryItem("Задачи 'оба' (требуется)", fmt(bothReq)),
-    summaryItem("Только мужские задачи", fmt(menOnly)),
-    summaryItem("Только женские задачи", fmt(womenOnly)),
-    summaryItem("Остаток мужских часов", fmt(menRemain)),
-    summaryItem("Остаток женских часов", fmt(womenRemain)),
-    summaryItem("Из 'оба' покрыто женскими", fmt(usedWomenForBoth)),
-    summaryItem("Из 'оба' покрыто мужскими", fmt(usedMenForBoth)),
+    summaryItem("Рабочих дней в неделе", fmt(WORK_DAYS_PER_WEEK)),
+    summaryItem("Доступно часов за неделю", fmt(availableWeekHours)),
+    summaryItem("Запланировано часов за неделю", fmt(plannedWeekHours)),
+    summaryItem(remainingWeekHours >= 0 ? "Остаток часов" : "Дефицит часов", fmt(Math.abs(remainingWeekHours))),
   ].join("");
 
-  const messages = [];
-  if (menOnly > menCapacity) {
-    messages.push(`Не хватает мужских часов: ${fmt(menOnly - menCapacity)}`);
-  }
-  if (womenOnly > womenCapacity) {
-    messages.push(`Не хватает женских часов: ${fmt(womenOnly - womenCapacity)}`);
-  }
-  if (bothLeft > 0) {
-    messages.push(`Не хватает часов для задач 'оба': ${fmt(bothLeft)}`);
-  }
-
-  if (messages.length === 0) {
+  if (plannedWeekHours <= availableWeekHours) {
     refs.calcWeekStatus.className = "status ok";
     refs.calcWeekStatus.textContent = "OK: недельная загрузка покрыта.";
     return;
   }
 
   refs.calcWeekStatus.className = "status warn";
-  refs.calcWeekStatus.textContent = messages.join(" | ");
+  refs.calcWeekStatus.textContent = `Не хватает часов за неделю: ${fmt(plannedWeekHours - availableWeekHours)}.`;
 }
 
-function sumLoad(tasks, restriction) {
-  return tasks
-    .filter((task) => task.restriction === restriction)
-    .reduce((sum, task) => sum + task.hours, 0);
+function groupHoursByTaskType(tasks) {
+  const map = new Map();
+
+  for (const task of tasks) {
+    const taskType = getTaskLabel(task);
+    map.set(taskType, (map.get(taskType) || 0) + toNumber(task.hours));
+  }
+
+  return Array.from(map.entries())
+    .map(([taskType, hours]) => ({ taskType, hours }))
+    .sort((a, b) => b.hours - a.hours);
+}
+
+function sumHours(tasks) {
+  return tasks.reduce((sum, task) => sum + toNumber(task.hours), 0);
 }
 
 function getEmployeeById(employeeId) {
@@ -621,22 +608,69 @@ function loadState() {
 
   try {
     const parsed = JSON.parse(raw);
+
+    const parsedEmployees = Array.isArray(parsed?.employees)
+      ? parsed.employees
+          .map((employee) => ({
+            id: employee?.id || id(),
+            name: String(employee?.name || "").trim(),
+          }))
+          .filter((employee) => employee.name)
+      : [];
+
+    const rawSettings = parsed?.settings || {};
+    const legacyMen = toNumber(rawSettings.menCount);
+    const legacyWomen = toNumber(rawSettings.womenCount);
+    const legacyStaffCount = legacyMen + legacyWomen;
+    const staffCount = Math.max(
+      0,
+      Math.floor(
+        toNumber(rawSettings.staffCount) || legacyStaffCount || parsedEmployees.length || defaultState.settings.staffCount,
+      ),
+    );
+
+    const taskTypes = Array.isArray(parsed?.taskTypes) && parsed.taskTypes.length > 0
+      ? [...new Set(parsed.taskTypes.map((taskType) => String(taskType || "").trim()).filter(Boolean))]
+      : [...DEFAULT_TASK_TYPES];
+
+    const dayTasks = Array.isArray(parsed?.dayTasks)
+      ? parsed.dayTasks.map((task) => ({
+        id: task?.id || id(),
+        date: task?.date || todayIso(),
+        employeeId: task?.employeeId || "",
+        taskType: getTaskFromRaw(task),
+        hours: Math.max(0, toNumber(task?.hours)),
+        orderComment: String(task?.orderComment || ""),
+      }))
+      : [];
+
+    const weekTasks = Array.isArray(parsed?.weekTasks)
+      ? parsed.weekTasks.map((task) => ({
+        id: task?.id || id(),
+        taskType: getTaskFromRaw(task),
+        hours: Math.max(0, toNumber(task?.hours)),
+        comment: String(task?.comment || ""),
+      }))
+      : [];
+
     return {
       settings: {
-        menCount: toNumber(parsed?.settings?.menCount ?? defaultState.settings.menCount),
-        womenCount: toNumber(parsed?.settings?.womenCount ?? defaultState.settings.womenCount),
-        hoursPerDay: toNumber(parsed?.settings?.hoursPerDay ?? defaultState.settings.hoursPerDay),
+        staffCount,
+        hoursPerDay: Math.max(0, toNumber(rawSettings.hoursPerDay ?? defaultState.settings.hoursPerDay)),
       },
-      employees: Array.isArray(parsed?.employees) ? parsed.employees : [],
-      taskTypes: Array.isArray(parsed?.taskTypes) && parsed.taskTypes.length > 0
-        ? parsed.taskTypes
-        : [...DEFAULT_TASK_TYPES],
-      dayTasks: Array.isArray(parsed?.dayTasks) ? parsed.dayTasks : [],
-      weekTasks: Array.isArray(parsed?.weekTasks) ? parsed.weekTasks : [],
+      employees: parsedEmployees.length > 0 ? parsedEmployees : structuredClone(defaultState.employees),
+      taskTypes,
+      dayTasks,
+      weekTasks,
     };
   } catch {
     return structuredClone(defaultState);
   }
+}
+
+function getTaskFromRaw(task) {
+  const value = String(task?.taskType || task?.taskName || "").trim();
+  return value || "Без типа";
 }
 
 function registerServiceWorker() {
@@ -664,12 +698,6 @@ function fmt(value) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
-}
-
-function restrictionLabel(code) {
-  if (code === "m") return "м";
-  if (code === "w") return "ж";
-  return "оба";
 }
 
 function todayIso() {
