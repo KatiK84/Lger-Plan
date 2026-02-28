@@ -1,4 +1,18 @@
 const STORAGE_KEY = "lager-plan-v1";
+const DEFAULT_TASK_TYPES = [
+  "Приход товара",
+  "Уход товара",
+  "Сбор заказа GH",
+  "Сбор заказа MGH",
+  "Приемка товара",
+  "Инвентаризация MGH",
+  "Инвентаризация GH",
+  "Уборка",
+  "Командировка",
+  "Другие задачи",
+  "Планерка",
+  "Сортировка",
+];
 
 const defaultState = {
   settings: {
@@ -13,6 +27,7 @@ const defaultState = {
     { id: id(), name: "Олена", gender: "w" },
     { id: id(), name: "Денис", gender: "m" },
   ],
+  taskTypes: [...DEFAULT_TASK_TYPES],
   dayTasks: [],
   weekTasks: [],
 };
@@ -29,13 +44,16 @@ const refs = {
   employeeName: document.getElementById("employeeName"),
   employeeGender: document.getElementById("employeeGender"),
   employeesBody: document.getElementById("employeesBody"),
+  taskTypeForm: document.getElementById("taskTypeForm"),
+  taskTypeName: document.getElementById("taskTypeName"),
+  taskTypesBody: document.getElementById("taskTypesBody"),
 
   selectedDate: document.getElementById("selectedDate"),
   dayEmployeeFilter: document.getElementById("dayEmployeeFilter"),
   dayRestrictionFilter: document.getElementById("dayRestrictionFilter"),
   dayTaskForm: document.getElementById("dayTaskForm"),
   dayEmployee: document.getElementById("dayEmployee"),
-  dayTaskName: document.getElementById("dayTaskName"),
+  dayTaskType: document.getElementById("dayTaskType"),
   dayRestriction: document.getElementById("dayRestriction"),
   dayMinPeople: document.getElementById("dayMinPeople"),
   dayHours: document.getElementById("dayHours"),
@@ -44,7 +62,7 @@ const refs = {
   printEmployeePlanBtn: document.getElementById("printEmployeePlanBtn"),
 
   weekTaskForm: document.getElementById("weekTaskForm"),
-  weekTaskName: document.getElementById("weekTaskName"),
+  weekTaskType: document.getElementById("weekTaskType"),
   weekRestriction: document.getElementById("weekRestriction"),
   weekHours: document.getElementById("weekHours"),
   weekComment: document.getElementById("weekComment"),
@@ -68,6 +86,8 @@ function bindEvents() {
 
   refs.employeeForm.addEventListener("submit", onAddEmployee);
   refs.employeesBody.addEventListener("click", onEmployeesTableClick);
+  refs.taskTypeForm.addEventListener("submit", onAddTaskType);
+  refs.taskTypesBody.addEventListener("click", onTaskTypesTableClick);
 
   refs.selectedDate.addEventListener("change", renderDayAndCalc);
   refs.dayEmployeeFilter.addEventListener("change", renderDayTasks);
@@ -120,12 +140,57 @@ function onEmployeesTableClick(event) {
   renderAll();
 }
 
+function onAddTaskType(event) {
+  event.preventDefault();
+  const taskTypeName = refs.taskTypeName.value.trim();
+  if (!taskTypeName) {
+    return;
+  }
+
+  const exists = state.taskTypes.some(
+    (type) => type.toLowerCase() === taskTypeName.toLowerCase(),
+  );
+  if (exists) {
+    window.alert("Такой тип задачи уже есть.");
+    return;
+  }
+
+  state.taskTypes.push(taskTypeName);
+  refs.taskTypeForm.reset();
+  persist();
+  renderTaskTypes();
+  renderTaskTypeOptions();
+}
+
+function onTaskTypesTableClick(event) {
+  const button = event.target.closest("button[data-index]");
+  if (!button) {
+    return;
+  }
+
+  const index = Number(button.dataset.index);
+  const taskTypeName = state.taskTypes[index];
+  if (!taskTypeName) {
+    return;
+  }
+
+  if (isTaskTypeInUse(taskTypeName)) {
+    window.alert("Нельзя удалить тип: он уже используется в задачах.");
+    return;
+  }
+
+  state.taskTypes = state.taskTypes.filter((type) => type !== taskTypeName);
+  persist();
+  renderTaskTypes();
+  renderTaskTypeOptions();
+}
+
 function onAddDayTask(event) {
   event.preventDefault();
 
   const employeeId = refs.dayEmployee.value;
-  const taskName = refs.dayTaskName.value.trim();
-  if (!employeeId || !taskName) {
+  const taskType = refs.dayTaskType.value;
+  if (!employeeId || !taskType) {
     return;
   }
 
@@ -133,7 +198,7 @@ function onAddDayTask(event) {
     id: id(),
     date: refs.selectedDate.value,
     employeeId,
-    taskName,
+    taskType,
     restriction: refs.dayRestriction.value,
     minPeople: Math.max(1, toNumber(refs.dayMinPeople.value)),
     hours: Math.max(0, toNumber(refs.dayHours.value)),
@@ -144,6 +209,7 @@ function onAddDayTask(event) {
   refs.dayMinPeople.value = "1";
   refs.dayRestriction.value = "both";
   renderEmployeeOptions();
+  renderTaskTypeOptions();
 
   persist();
   renderDayAndCalc();
@@ -164,14 +230,14 @@ function onDayTasksTableClick(event) {
 function onAddWeekTask(event) {
   event.preventDefault();
 
-  const taskName = refs.weekTaskName.value.trim();
-  if (!taskName) {
+  const taskType = refs.weekTaskType.value;
+  if (!taskType) {
     return;
   }
 
   state.weekTasks.push({
     id: id(),
-    taskName,
+    taskType,
     restriction: refs.weekRestriction.value,
     hours: Math.max(0, toNumber(refs.weekHours.value)),
     comment: refs.weekComment.value.trim(),
@@ -179,6 +245,7 @@ function onAddWeekTask(event) {
 
   refs.weekTaskForm.reset();
   refs.weekRestriction.value = "both";
+  renderTaskTypeOptions();
 
   persist();
   renderWeekTasks();
@@ -222,7 +289,7 @@ function onPrintEmployeePlan() {
       const total = task.hours * task.minPeople;
       return `
         <tr>
-          <td>${escapeHtml(task.taskName)}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
           <td>${restrictionLabel(task.restriction)}</td>
           <td>${task.minPeople}</td>
           <td>${fmt(task.hours)}</td>
@@ -280,7 +347,9 @@ function onPrintEmployeePlan() {
 function renderAll() {
   renderSettings();
   renderEmployees();
+  renderTaskTypes();
   renderEmployeeOptions();
+  renderTaskTypeOptions();
   renderDayAndCalc();
   renderWeekTasks();
 }
@@ -307,6 +376,21 @@ function renderEmployees() {
     .join("");
 }
 
+function renderTaskTypes() {
+  refs.taskTypesBody.innerHTML = state.taskTypes
+    .map(
+      (taskType, index) => `
+      <tr>
+        <td>${escapeHtml(taskType)}</td>
+        <td>
+          <button class="btn danger" data-index="${index}" type="button">Удалить</button>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
+}
+
 function renderEmployeeOptions() {
   const options = state.employees
     .map((employee) => `<option value="${employee.id}">${escapeHtml(employee.name)}</option>`)
@@ -320,6 +404,22 @@ function renderEmployeeOptions() {
   refs.dayEmployeeFilter.value = state.employees.some((e) => e.id === currentFilter)
     ? currentFilter
     : "all";
+}
+
+function renderTaskTypeOptions() {
+  if (state.taskTypes.length === 0) {
+    const emptyOption = "<option value=\"\">Сначала добавьте тип задачи</option>";
+    refs.dayTaskType.innerHTML = emptyOption;
+    refs.weekTaskType.innerHTML = emptyOption;
+    return;
+  }
+
+  const options = state.taskTypes
+    .map((taskType) => `<option value="${escapeHtml(taskType)}">${escapeHtml(taskType)}</option>`)
+    .join("");
+
+  refs.dayTaskType.innerHTML = options;
+  refs.weekTaskType.innerHTML = options;
 }
 
 function renderDayAndCalc() {
@@ -344,7 +444,7 @@ function renderDayTasks() {
       return `
         <tr>
           <td>${escapeHtml(employee?.name || "-")}</td>
-          <td>${escapeHtml(task.taskName)}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
           <td>${restrictionLabel(task.restriction)}</td>
           <td class="num">${task.minPeople}</td>
           <td class="num">${fmt(task.hours)}</td>
@@ -362,7 +462,7 @@ function renderWeekTasks() {
     .map(
       (task) => `
       <tr>
-        <td>${escapeHtml(task.taskName)}</td>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
         <td>${restrictionLabel(task.restriction)}</td>
         <td class="num">${fmt(task.hours)}</td>
         <td>${escapeHtml(task.comment || "-")}</td>
@@ -443,6 +543,16 @@ function summaryItem(label, value) {
   return `<div class="calc-item"><strong>${label}</strong>${value}</div>`;
 }
 
+function getTaskLabel(task) {
+  return task.taskType || task.taskName || "";
+}
+
+function isTaskTypeInUse(taskTypeName) {
+  const usedInDay = state.dayTasks.some((task) => getTaskLabel(task) === taskTypeName);
+  const usedInWeek = state.weekTasks.some((task) => getTaskLabel(task) === taskTypeName);
+  return usedInDay || usedInWeek;
+}
+
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -462,6 +572,9 @@ function loadState() {
         hoursPerDay: toNumber(parsed?.settings?.hoursPerDay ?? defaultState.settings.hoursPerDay),
       },
       employees: Array.isArray(parsed?.employees) ? parsed.employees : [],
+      taskTypes: Array.isArray(parsed?.taskTypes) && parsed.taskTypes.length > 0
+        ? parsed.taskTypes
+        : [...DEFAULT_TASK_TYPES],
       dayTasks: Array.isArray(parsed?.dayTasks) ? parsed.dayTasks : [],
       weekTasks: Array.isArray(parsed?.weekTasks) ? parsed.weekTasks : [],
     };

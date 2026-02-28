@@ -57,6 +57,24 @@
     </section>
 
     <section class="panel">
+      <h2>Типы задач</h2>
+      <form id="taskTypeForm" class="inline-form">
+        <input id="taskTypeName" placeholder="Новый тип задачи" required>
+        <div></div>
+        <button type="submit" class="btn">Добавить тип</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>Тип задачи</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="taskTypesBody"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
       <h2>План на день</h2>
       <div class="grid3">
         <label>
@@ -80,7 +98,7 @@
 
       <form id="dayTaskForm" class="inline-form wrap">
         <select id="dayEmployee" required></select>
-        <input id="dayTaskName" placeholder="Задача" required>
+        <select id="dayTaskType" required></select>
         <select id="dayRestriction" required>
           <option value="both">оба</option>
           <option value="m">м</option>
@@ -116,7 +134,7 @@
     <section class="panel">
       <h2>План на неделю</h2>
       <form id="weekTaskForm" class="inline-form wrap">
-        <input id="weekTaskName" placeholder="Задача" required>
+        <select id="weekTaskType" required></select>
         <select id="weekRestriction" required>
           <option value="both">оба</option>
           <option value="m">м</option>
