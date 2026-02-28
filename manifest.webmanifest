@@ -1,0 +1,10 @@
+{
+  "name": "Lager Plan",
+  "short_name": "LagerPlan",
+  "description": "Локальное планирование задач склада",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f4",
+  "theme_color": "#1f6f5f",
+  "lang": "ru"
+}
