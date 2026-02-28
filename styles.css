@@ -185,6 +185,52 @@ td.num {
   color: var(--warn);
 }
 
+.settings-details {
+  border-radius: 8px;
+}
+
+.settings-summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: #355f88;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-summary::after {
+  content: "▾";
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.settings-details[open] .settings-summary::after {
+  transform: rotate(180deg);
+}
+
+.settings-content {
+  margin-top: 12px;
+}
+
+.subpanel + .subpanel {
+  margin-top: 14px;
+}
+
+.table-scroll {
+  max-height: 300px;
+  overflow: auto;
+  border-radius: 8px;
+}
+
 @media (max-width: 980px) {
   .inline-form,
   .inline-form.wrap,
