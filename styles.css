@@ -345,8 +345,8 @@ tr.completed-row td {
   margin-top: 12px;
 }
 
-.subpanel + .subpanel {
-  margin-top: 14px;
+.settings-group + .settings-group {
+  margin-top: 12px;
 }
 
 .table-scroll {

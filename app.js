@@ -78,6 +78,8 @@ const refs = {
   weekTaskType: document.getElementById("weekTaskType"),
   weekHours: document.getElementById("weekHours"),
   weekComment: document.getElementById("weekComment"),
+  printWeekCompletedBtn: document.getElementById("printWeekCompletedBtn"),
+  printWeekPlanBtn: document.getElementById("printWeekPlanBtn"),
   weekTasksBody: document.getElementById("weekTasksBody"),
 
   calcSummary: document.getElementById("calcSummary"),
@@ -122,6 +124,8 @@ function bindEvents() {
 
   refs.weekTaskForm.addEventListener("submit", onAddWeekTask);
   refs.weekTasksBody.addEventListener("click", onWeekTasksTableClick);
+  refs.printWeekCompletedBtn.addEventListener("click", onPrintWeekCompletedTasks);
+  refs.printWeekPlanBtn.addEventListener("click", onPrintWeekPlan);
 }
 
 function onSaveSettings() {
@@ -309,6 +313,7 @@ function onAddWeekTask(event) {
     taskType,
     hours: Math.max(0, toNumber(refs.weekHours.value)),
     comment: refs.weekComment.value.trim(),
+    completed: false,
   });
 
   refs.weekTaskForm.reset();
@@ -321,17 +326,168 @@ function onAddWeekTask(event) {
 }
 
 function onWeekTasksTableClick(event) {
-  const button = event.target.closest("button[data-id]");
+  const button = event.target.closest("button[data-id][data-action]");
   if (!button) {
     return;
   }
 
   const taskId = button.dataset.id;
-  state.weekTasks = state.weekTasks.filter((task) => task.id !== taskId);
+  const action = button.dataset.action;
+  if (action === "delete") {
+    const task = state.weekTasks.find((item) => item.id === taskId);
+    if (!task) {
+      return;
+    }
+
+    if (!task.completed) {
+      state.weekTasks = state.weekTasks.map((item) => (
+        item.id === taskId
+          ? { ...item, completed: true }
+          : item
+      ));
+    } else {
+      state.weekTasks = state.weekTasks.filter((item) => item.id !== taskId);
+    }
+  } else if (action === "toggle-complete") {
+    state.weekTasks = state.weekTasks.map((task) => {
+      if (task.id !== taskId) {
+        return task;
+      }
+      return {
+        ...task,
+        completed: !task.completed,
+      };
+    });
+  }
 
   persist();
   renderWeekTasks();
   renderWeekCalc();
+}
+
+function onPrintWeekPlan() {
+  if (state.weekTasks.length === 0) {
+    window.alert("В недельном плане пока нет задач.");
+    return;
+  }
+
+  const rows = state.weekTasks
+    .map((task) => `
+      <tr>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td>${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.comment || "-")}</td>
+        <td>${task.completed ? "Выполнено" : "В работе"}</td>
+      </tr>
+    `)
+    .join("");
+
+  const totalHours = sumHours(state.weekTasks);
+  const completedHours = sumHours(state.weekTasks.filter((task) => task.completed));
+  const activeHours = sumHours(state.weekTasks.filter((task) => !task.completed));
+
+  const win = window.open("", "_blank", "width=1080,height=760");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>План на неделю</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 10px; }
+          .totals { margin: 0 0 12px; color: #444; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+        </style>
+      </head>
+      <body>
+        <h1>План на неделю</h1>
+        <p class="totals">Всего часов: ${fmt(totalHours)} | В работе: ${fmt(activeHours)} | Выполнено: ${fmt(completedHours)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Задача</th>
+              <th>Часы</th>
+              <th>Комментарий</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function onPrintWeekCompletedTasks() {
+  const completedTasks = state.weekTasks.filter((task) => task.completed);
+  if (completedTasks.length === 0) {
+    window.alert("Закрытых задач за неделю пока нет.");
+    return;
+  }
+
+  const rows = completedTasks
+    .map((task) => `
+      <tr>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td>${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.comment || "-")}</td>
+      </tr>
+    `)
+    .join("");
+
+  const totalHours = sumHours(completedTasks);
+
+  const win = window.open("", "_blank", "width=980,height=740");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>Закрытые задачи недели</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 10px; }
+          p { margin: 0 0 12px; color: #444; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+          .total { font-weight: 700; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>Закрытые задачи за неделю</h1>
+        <p>Количество задач: ${completedTasks.length}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Задача</th>
+              <th>Часы</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total">Итого выполнено часов: ${fmt(totalHours)}</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 
 function onPrintEmployeePlan() {
@@ -565,13 +721,17 @@ function renderDayTasks() {
 
 function renderWeekTasks() {
   refs.weekTasksBody.innerHTML = state.weekTasks
+    .sort((a, b) => Number(a.completed) - Number(b.completed))
     .map(
       (task) => `
-      <tr>
+      <tr class="${task.completed ? "completed-row" : ""}">
         <td>${escapeHtml(getTaskLabel(task))}</td>
         <td class="num">${fmt(task.hours)}</td>
         <td>${escapeHtml(task.comment || "-")}</td>
-        <td><button class="btn danger" data-id="${task.id}" type="button">Удалить</button></td>
+        <td>
+          <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
+          <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">${task.completed ? "Удалить совсем" : "Завершить"}</button>
+        </td>
       </tr>
     `,
     )
@@ -649,7 +809,9 @@ function renderEmployeeFreeHours(dayTasks) {
       const plannedHours = sumHours(dayTasks.filter((task) => task.employeeId === employee.id));
       const freeHours = state.settings.hoursPerDay - plannedHours;
       const freeLabel = freeHours >= 0 ? fmt(freeHours) : `-${fmt(Math.abs(freeHours))}`;
-      const freeTitle = freeHours >= 0 ? "Свободно" : "Перегрузка";
+      const freeTitle = freeHours < 0
+        ? "Перегрузка"
+        : (freeHours === 0 ? "Полностью запланирован" : "Свободно");
       const rowClass = freeHours < 0 ? "free-overload" : "";
 
       return `
@@ -717,7 +879,8 @@ function renderDailyBreakdown(dayTasks, title = "Загрузка по типа�
 }
 
 function renderWeekCalc() {
-  const plannedWeekHours = sumHours(state.weekTasks);
+  const activeWeekTasks = state.weekTasks.filter((task) => !task.completed);
+  const plannedWeekHours = sumHours(activeWeekTasks);
   const availableWeekHours = state.settings.staffCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
   const remainingWeekHours = availableWeekHours - plannedWeekHours;
 
@@ -830,6 +993,7 @@ function loadState() {
         taskType: getTaskFromRaw(task),
         hours: Math.max(0, toNumber(task?.hours)),
         comment: String(task?.comment || ""),
+        completed: Boolean(task?.completed),
       }))
       : [];
 
