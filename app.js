@@ -75,6 +75,7 @@ const refs = {
 init();
 
 function init() {
+  syncStaffCountWithEmployees();
   refs.selectedDate.value = todayIso();
   bindEvents();
   renderAll();
@@ -103,7 +104,6 @@ function bindEvents() {
 }
 
 function onSaveSettings() {
-  state.settings.staffCount = Math.max(0, Math.floor(toNumber(refs.staffCount.value)));
   state.settings.hoursPerDay = Math.max(0, toNumber(refs.hoursPerDay.value));
   persist();
   renderDayAndCalc();
@@ -122,6 +122,7 @@ function onAddEmployee(event) {
     name,
   });
 
+  syncStaffCountWithEmployees();
   refs.employeeForm.reset();
   persist();
   renderAll();
@@ -136,6 +137,7 @@ function onEmployeesTableClick(event) {
   const employeeId = button.dataset.id;
   state.employees = state.employees.filter((employee) => employee.id !== employeeId);
   state.dayTasks = state.dayTasks.filter((task) => task.employeeId !== employeeId);
+  syncStaffCountWithEmployees();
   persist();
   renderAll();
 }
@@ -345,6 +347,7 @@ function renderAll() {
 }
 
 function renderSettings() {
+  syncStaffCountWithEmployees();
   refs.staffCount.value = state.settings.staffCount;
   refs.hoursPerDay.value = state.settings.hoursPerDay;
 }
@@ -609,7 +612,8 @@ function loadState() {
   try {
     const parsed = JSON.parse(raw);
 
-    const parsedEmployees = Array.isArray(parsed?.employees)
+    const hasEmployeesArray = Array.isArray(parsed?.employees);
+    const parsedEmployees = hasEmployeesArray
       ? parsed.employees
           .map((employee) => ({
             id: employee?.id || id(),
@@ -617,6 +621,7 @@ function loadState() {
           }))
           .filter((employee) => employee.name)
       : [];
+    const employees = hasEmployeesArray ? parsedEmployees : structuredClone(defaultState.employees);
 
     const rawSettings = parsed?.settings || {};
     const legacyMen = toNumber(rawSettings.menCount);
@@ -655,10 +660,10 @@ function loadState() {
 
     return {
       settings: {
-        staffCount,
+        staffCount: employees.length > 0 ? employees.length : staffCount,
         hoursPerDay: Math.max(0, toNumber(rawSettings.hoursPerDay ?? defaultState.settings.hoursPerDay)),
       },
-      employees: parsedEmployees.length > 0 ? parsedEmployees : structuredClone(defaultState.employees),
+      employees,
       taskTypes,
       dayTasks,
       weekTasks,
@@ -666,6 +671,10 @@ function loadState() {
   } catch {
     return structuredClone(defaultState);
   }
+}
+
+function syncStaffCountWithEmployees() {
+  state.settings.staffCount = state.employees.length;
 }
 
 function getTaskFromRaw(task) {
