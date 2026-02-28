@@ -14,6 +14,21 @@ const DEFAULT_TASK_TYPES = [
   "Планерка",
   "Сортировка",
 ];
+const HOUR_OPTIONS = [
+  { value: "0.25", label: "15 мин" },
+  { value: "0.5", label: "30 мин" },
+  { value: "0.75", label: "45 мин" },
+  { value: "1", label: "1 час" },
+  { value: "1.5", label: "1,5 часа" },
+  { value: "2", label: "2 часа" },
+  { value: "3", label: "3 часа" },
+  { value: "4", label: "4 часа" },
+  { value: "5", label: "5 часов" },
+  { value: "6", label: "6 часов" },
+  { value: "7", label: "7 часов" },
+  { value: "8", label: "8 часов" },
+  { value: "9", label: "9 часов" },
+];
 
 const defaultState = {
   settings: {
@@ -56,6 +71,7 @@ const refs = {
   dayHours: document.getElementById("dayHours"),
   dayOrder: document.getElementById("dayOrder"),
   dayTasksBody: document.getElementById("dayTasksBody"),
+  clearCompletedDayBtn: document.getElementById("clearCompletedDayBtn"),
   printEmployeePlanBtn: document.getElementById("printEmployeePlanBtn"),
 
   weekTaskForm: document.getElementById("weekTaskForm"),
@@ -66,8 +82,6 @@ const refs = {
 
   calcSummary: document.getElementById("calcSummary"),
   calcEmployeeFilter: document.getElementById("calcEmployeeFilter"),
-  calcEmployeeSummary: document.getElementById("calcEmployeeSummary"),
-  calcEmployeeStatus: document.getElementById("calcEmployeeStatus"),
   calcTaskTypeBreakdown: document.getElementById("calcTaskTypeBreakdown"),
   calcStatus: document.getElementById("calcStatus"),
 
@@ -80,6 +94,7 @@ init();
 function init() {
   syncStaffCountWithEmployees();
   refs.selectedDate.value = todayIso();
+  renderHourOptions();
   bindEvents();
   renderAll();
   registerServiceWorker();
@@ -101,6 +116,7 @@ function bindEvents() {
 
   refs.dayTaskForm.addEventListener("submit", onAddDayTask);
   refs.dayTasksBody.addEventListener("click", onDayTasksTableClick);
+  refs.clearCompletedDayBtn.addEventListener("click", onClearCompletedDayTasks);
   refs.printEmployeePlanBtn.addEventListener("click", onPrintEmployeePlan);
 
   refs.weekTaskForm.addEventListener("submit", onAddWeekTask);
@@ -209,24 +225,53 @@ function onAddDayTask(event) {
     taskType,
     hours: Math.max(0, toNumber(refs.dayHours.value)),
     orderComment: refs.dayOrder.value.trim(),
+    completed: false,
   });
 
   refs.dayTaskForm.reset();
   renderEmployeeOptions();
   renderTaskTypeOptions();
+  refs.dayHours.value = "1";
 
   persist();
   renderDayAndCalc();
 }
 
 function onDayTasksTableClick(event) {
-  const button = event.target.closest("button[data-id]");
+  const button = event.target.closest("button[data-id][data-action]");
   if (!button) {
     return;
   }
 
   const taskId = button.dataset.id;
-  state.dayTasks = state.dayTasks.filter((task) => task.id !== taskId);
+  const action = button.dataset.action;
+  if (action === "delete") {
+    state.dayTasks = state.dayTasks.filter((task) => task.id !== taskId);
+  } else if (action === "toggle-complete") {
+    state.dayTasks = state.dayTasks.map((task) => {
+      if (task.id !== taskId) {
+        return task;
+      }
+      return {
+        ...task,
+        completed: !task.completed,
+      };
+    });
+  }
+
+  persist();
+  renderDayAndCalc();
+}
+
+function onClearCompletedDayTasks() {
+  const selectedDate = refs.selectedDate.value;
+  const completedCount = state.dayTasks.filter((task) => task.date === selectedDate && task.completed).length;
+  if (completedCount === 0) {
+    window.alert("На выбранную дату нет выполненных задач.");
+    return;
+  }
+
+  state.dayTasks = state.dayTasks.filter((task) => !(task.date === selectedDate && task.completed));
   persist();
   renderDayAndCalc();
 }
@@ -248,6 +293,7 @@ function onAddWeekTask(event) {
 
   refs.weekTaskForm.reset();
   renderTaskTypeOptions();
+  refs.weekHours.value = "1";
 
   persist();
   renderWeekTasks();
@@ -288,7 +334,7 @@ function onPrintEmployeePlan() {
   }
 
   const rows = state.dayTasks
-    .filter((task) => task.date === selectedDate && task.employeeId === employeeId)
+    .filter((task) => task.date === selectedDate && task.employeeId === employeeId && !task.completed)
     .map((task) => `
       <tr>
         <td>${escapeHtml(getTaskLabel(task))}</td>
@@ -444,6 +490,24 @@ function renderTaskTypeOptions() {
   refs.dayTaskTypeFilter.value = state.taskTypes.includes(currentTypeFilter) ? currentTypeFilter : "all";
 }
 
+function renderHourOptions() {
+  const dayCurrent = refs.dayHours.value;
+  const weekCurrent = refs.weekHours.value;
+  const options = HOUR_OPTIONS
+    .map((option) => `<option value="${option.value}">${option.label}</option>`)
+    .join("");
+
+  refs.dayHours.innerHTML = options;
+  refs.weekHours.innerHTML = options;
+
+  refs.dayHours.value = HOUR_OPTIONS.some((option) => option.value === dayCurrent)
+    ? dayCurrent
+    : "1";
+  refs.weekHours.value = HOUR_OPTIONS.some((option) => option.value === weekCurrent)
+    ? weekCurrent
+    : "1";
+}
+
 function renderDayAndCalc() {
   renderDayTasks();
   renderDayCalc();
@@ -460,15 +524,19 @@ function renderDayTasks() {
     .filter((task) => (taskTypeFilter === "all" ? true : getTaskLabel(task) === taskTypeFilter));
 
   refs.dayTasksBody.innerHTML = filteredTasks
+    .sort((a, b) => Number(a.completed) - Number(b.completed))
     .map((task) => {
       const employee = getEmployeeById(task.employeeId);
       return `
-        <tr>
+        <tr class="${task.completed ? "completed-row" : ""}">
           <td>${escapeHtml(employee?.name || "-")}</td>
           <td>${escapeHtml(getTaskLabel(task))}</td>
           <td class="num">${fmt(task.hours)}</td>
           <td>${escapeHtml(task.orderComment || "-")}</td>
-          <td><button class="btn danger" data-id="${task.id}" type="button">Удалить</button></td>
+          <td>
+            <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
+            <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">Удалить</button>
+          </td>
         </tr>
       `;
     })
@@ -492,7 +560,38 @@ function renderWeekTasks() {
 
 function renderDayCalc() {
   const selectedDate = refs.selectedDate.value;
-  const dayTasks = state.dayTasks.filter((task) => task.date === selectedDate);
+  const dayTasks = state.dayTasks.filter((task) => task.date === selectedDate && !task.completed);
+  const selectedEmployeeId = refs.calcEmployeeFilter.value;
+
+  if (selectedEmployeeId && selectedEmployeeId !== "all") {
+    const employee = getEmployeeById(selectedEmployeeId);
+    const employeeName = employee?.name || "Сотрудник";
+    const employeeTasks = dayTasks.filter((task) => task.employeeId === selectedEmployeeId);
+    const availableHours = state.settings.hoursPerDay;
+    const plannedHours = sumHours(employeeTasks);
+    const diff = availableHours - plannedHours;
+
+    refs.calcSummary.innerHTML = [
+      summaryItem("Сотрудник", escapeHtml(employeeName)),
+      summaryItem("Доступно часов", fmt(availableHours)),
+      summaryItem("Запланировано часов", fmt(plannedHours)),
+      summaryItem(diff >= 0 ? "Остаток часов" : "Перегрузка", fmt(Math.abs(diff))),
+    ].join("");
+
+    renderDailyBreakdown(employeeTasks, `Загрузка по типам задач: ${employeeName}`);
+
+    if (plannedHours === availableHours) {
+      refs.calcStatus.className = "status ok";
+      refs.calcStatus.textContent = `Сотрудник ${employeeName}: полностью запланирован по часам.`;
+      return;
+    }
+
+    refs.calcStatus.className = "status warn";
+    refs.calcStatus.textContent = plannedHours < availableHours
+      ? `Сотрудник ${employeeName}: недозагрузка ${fmt(availableHours - plannedHours)} ч.`
+      : `Сотрудник ${employeeName}: перегрузка ${fmt(plannedHours - availableHours)} ч.`;
+    return;
+  }
 
   const availableHours = state.settings.staffCount * state.settings.hoursPerDay;
   const plannedHours = sumHours(dayTasks);
@@ -505,7 +604,6 @@ function renderDayCalc() {
     summaryItem(remainingHours >= 0 ? "Остаток часов" : "Дефицит часов", fmt(Math.abs(remainingHours))),
   ].join("");
 
-  renderEmployeeDayLoad(dayTasks);
   renderDailyBreakdown(dayTasks);
 
   if (plannedHours <= availableHours) {
@@ -518,53 +616,7 @@ function renderDayCalc() {
   refs.calcStatus.textContent = `Не хватает часов: ${fmt(plannedHours - availableHours)}.`;
 }
 
-function renderEmployeeDayLoad(dayTasks) {
-  const employeeId = refs.calcEmployeeFilter.value;
-  if (!employeeId || employeeId === "all") {
-    refs.calcEmployeeSummary.innerHTML = "";
-    refs.calcEmployeeStatus.className = "status";
-    refs.calcEmployeeStatus.textContent = "Выберите сотрудника для персональной проверки загрузки.";
-    return;
-  }
-
-  const employee = getEmployeeById(employeeId);
-  if (!employee) {
-    refs.calcEmployeeSummary.innerHTML = "";
-    refs.calcEmployeeStatus.className = "status";
-    refs.calcEmployeeStatus.textContent = "Сотрудник не найден.";
-    return;
-  }
-
-  const employeePlannedHours = sumHours(dayTasks.filter((task) => task.employeeId === employeeId));
-  const employeeAvailableHours = state.settings.hoursPerDay;
-  const employeeDiff = employeeAvailableHours - employeePlannedHours;
-
-  refs.calcEmployeeSummary.innerHTML = [
-    summaryItem(`Сотрудник`, escapeHtml(employee.name)),
-    summaryItem("Доступно часов (сотрудник)", fmt(employeeAvailableHours)),
-    summaryItem("Запланировано (сотрудник)", fmt(employeePlannedHours)),
-    summaryItem(
-      employeeDiff >= 0 ? "Остаток часов (сотрудник)" : "Перегрузка (сотрудник)",
-      fmt(Math.abs(employeeDiff)),
-    ),
-  ].join("");
-
-  if (employeePlannedHours === employeeAvailableHours) {
-    refs.calcEmployeeStatus.className = "status ok";
-    refs.calcEmployeeStatus.textContent = `Сотрудник ${employee.name}: полностью запланирован по часам.`;
-    return;
-  }
-
-  refs.calcEmployeeStatus.className = "status warn";
-  if (employeePlannedHours < employeeAvailableHours) {
-    refs.calcEmployeeStatus.textContent = `Сотрудник ${employee.name}: недозагрузка ${fmt(employeeAvailableHours - employeePlannedHours)} ч.`;
-    return;
-  }
-
-  refs.calcEmployeeStatus.textContent = `Сотрудник ${employee.name}: перегрузка ${fmt(employeePlannedHours - employeeAvailableHours)} ч.`;
-}
-
-function renderDailyBreakdown(dayTasks) {
+function renderDailyBreakdown(dayTasks, title = "Загрузка по типам задач") {
   const grouped = groupHoursByTaskType(dayTasks);
 
   if (grouped.length === 0) {
@@ -584,7 +636,7 @@ function renderDailyBreakdown(dayTasks) {
     .join("");
 
   refs.calcTaskTypeBreakdown.innerHTML = `
-    <h3>Загрузка по типам задач</h3>
+    <h3>${escapeHtml(title)}</h3>
     <table class="breakdown-table">
       <thead>
         <tr>
@@ -703,6 +755,7 @@ function loadState() {
         taskType: getTaskFromRaw(task),
         hours: Math.max(0, toNumber(task?.hours)),
         orderComment: String(task?.orderComment || ""),
+        completed: Boolean(task?.completed),
       }))
       : [];
 

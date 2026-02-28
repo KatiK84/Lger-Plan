@@ -111,7 +111,9 @@ select {
 .actions-row {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -136,6 +138,22 @@ select {
   background: #a3372a;
 }
 
+.btn.done {
+  background: #2f7a45;
+}
+
+.btn.done:hover {
+  background: #256339;
+}
+
+.btn.muted {
+  background: #5d6a66;
+}
+
+.btn.muted:hover {
+  background: #4c5754;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -157,6 +175,11 @@ td {
 td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+tr.completed-row td {
+  text-decoration: line-through;
+  color: #7b8783;
 }
 
 .calc-grid {
