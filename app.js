@@ -56,7 +56,6 @@ const refs = {
   dayEmployee: document.getElementById("dayEmployee"),
   dayTaskType: document.getElementById("dayTaskType"),
   dayRestriction: document.getElementById("dayRestriction"),
-  dayMinPeople: document.getElementById("dayMinPeople"),
   dayHours: document.getElementById("dayHours"),
   dayOrder: document.getElementById("dayOrder"),
   dayTasksBody: document.getElementById("dayTasksBody"),
@@ -204,13 +203,11 @@ function onAddDayTask(event) {
     employeeId,
     taskType,
     restriction: refs.dayRestriction.value,
-    minPeople: Math.max(1, toNumber(refs.dayMinPeople.value)),
     hours: Math.max(0, toNumber(refs.dayHours.value)),
     orderComment: refs.dayOrder.value.trim(),
   });
 
   refs.dayTaskForm.reset();
-  refs.dayMinPeople.value = "1";
   refs.dayRestriction.value = "both";
   renderEmployeeOptions();
   renderTaskTypeOptions();
@@ -292,12 +289,11 @@ function onPrintEmployeePlan() {
   const rows = state.dayTasks
     .filter((task) => task.date === selectedDate && task.employeeId === employeeId)
     .map((task) => {
-      const total = task.hours * task.minPeople;
+      const total = task.hours;
       return `
         <tr>
           <td>${escapeHtml(getTaskLabel(task))}</td>
           <td>${restrictionLabel(task.restriction)}</td>
-          <td>${task.minPeople}</td>
           <td>${fmt(task.hours)}</td>
           <td>${fmt(total)}</td>
           <td>${escapeHtml(task.orderComment || "-")}</td>
@@ -334,13 +330,12 @@ function onPrintEmployeePlan() {
             <tr>
               <th>Задача</th>
               <th>м/ж/оба</th>
-              <th>Мин. чел</th>
               <th>Время</th>
               <th>Общее время</th>
               <th>Номер / комментарий</th>
             </tr>
           </thead>
-          <tbody>${rows || "<tr><td colspan='6'>Нет задач на выбранную дату</td></tr>"}</tbody>
+          <tbody>${rows || "<tr><td colspan='5'>Нет задач на выбранную дату</td></tr>"}</tbody>
         </table>
       </body>
     </html>
@@ -447,13 +442,12 @@ function renderDayTasks() {
   refs.dayTasksBody.innerHTML = filteredTasks
     .map((task) => {
       const employee = getEmployeeById(task.employeeId);
-      const total = task.hours * task.minPeople;
+      const total = task.hours;
       return `
         <tr>
           <td>${escapeHtml(employee?.name || "-")}</td>
           <td>${escapeHtml(getTaskLabel(task))}</td>
           <td>${restrictionLabel(task.restriction)}</td>
-          <td class="num">${task.minPeople}</td>
           <td class="num">${fmt(task.hours)}</td>
           <td class="num">${fmt(total)}</td>
           <td>${escapeHtml(task.orderComment || "-")}</td>
@@ -594,7 +588,7 @@ function renderWeekCalc() {
 function sumLoad(tasks, restriction) {
   return tasks
     .filter((task) => task.restriction === restriction)
-    .reduce((sum, task) => sum + task.hours * (task.minPeople ?? 1), 0);
+    .reduce((sum, task) => sum + task.hours, 0);
 }
 
 function getEmployeeById(employeeId) {
