@@ -60,7 +60,15 @@
 
     <section class="panel">
       <h2>Расчет загрузки (день)</h2>
+      <div class="calc-controls">
+        <label>
+          Контроль по сотруднику
+          <select id="calcEmployeeFilter"></select>
+        </label>
+      </div>
       <div id="calcSummary" class="calc-grid"></div>
+      <div id="calcEmployeeSummary" class="calc-grid"></div>
+      <div id="calcEmployeeStatus" class="status"></div>
       <div id="calcTaskTypeBreakdown" class="calc-breakdown"></div>
       <div id="calcStatus" class="status"></div>
     </section>

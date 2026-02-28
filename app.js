@@ -65,6 +65,9 @@ const refs = {
   weekTasksBody: document.getElementById("weekTasksBody"),
 
   calcSummary: document.getElementById("calcSummary"),
+  calcEmployeeFilter: document.getElementById("calcEmployeeFilter"),
+  calcEmployeeSummary: document.getElementById("calcEmployeeSummary"),
+  calcEmployeeStatus: document.getElementById("calcEmployeeStatus"),
   calcTaskTypeBreakdown: document.getElementById("calcTaskTypeBreakdown"),
   calcStatus: document.getElementById("calcStatus"),
 
@@ -94,6 +97,7 @@ function bindEvents() {
   refs.selectedDate.addEventListener("change", renderDayAndCalc);
   refs.dayEmployeeFilter.addEventListener("change", renderDayTasks);
   refs.dayTaskTypeFilter.addEventListener("change", renderDayTasks);
+  refs.calcEmployeeFilter.addEventListener("change", renderDayCalc);
 
   refs.dayTaskForm.addEventListener("submit", onAddDayTask);
   refs.dayTasksBody.addEventListener("click", onDayTasksTableClick);
@@ -389,9 +393,11 @@ function renderEmployeeOptions() {
 
   const currentDayEmployee = refs.dayEmployee.value;
   const currentFilter = refs.dayEmployeeFilter.value || "all";
+  const currentCalcFilter = refs.calcEmployeeFilter.value || "all";
 
   refs.dayEmployee.innerHTML = options;
   refs.dayEmployeeFilter.innerHTML = `<option value="all">все</option>${options}`;
+  refs.calcEmployeeFilter.innerHTML = `<option value="all">все сотрудники</option>${options}`;
 
   if (state.employees.some((employee) => employee.id === currentDayEmployee)) {
     refs.dayEmployee.value = currentDayEmployee;
@@ -399,6 +405,10 @@ function renderEmployeeOptions() {
 
   refs.dayEmployeeFilter.value = state.employees.some((employee) => employee.id === currentFilter)
     ? currentFilter
+    : "all";
+
+  refs.calcEmployeeFilter.value = state.employees.some((employee) => employee.id === currentCalcFilter)
+    ? currentCalcFilter
     : "all";
 }
 
@@ -495,6 +505,7 @@ function renderDayCalc() {
     summaryItem(remainingHours >= 0 ? "Остаток часов" : "Дефицит часов", fmt(Math.abs(remainingHours))),
   ].join("");
 
+  renderEmployeeDayLoad(dayTasks);
   renderDailyBreakdown(dayTasks);
 
   if (plannedHours <= availableHours) {
@@ -505,6 +516,52 @@ function renderDayCalc() {
 
   refs.calcStatus.className = "status warn";
   refs.calcStatus.textContent = `Не хватает часов: ${fmt(plannedHours - availableHours)}.`;
+}
+
+function renderEmployeeDayLoad(dayTasks) {
+  const employeeId = refs.calcEmployeeFilter.value;
+  if (!employeeId || employeeId === "all") {
+    refs.calcEmployeeSummary.innerHTML = "";
+    refs.calcEmployeeStatus.className = "status";
+    refs.calcEmployeeStatus.textContent = "Выберите сотрудника для персональной проверки загрузки.";
+    return;
+  }
+
+  const employee = getEmployeeById(employeeId);
+  if (!employee) {
+    refs.calcEmployeeSummary.innerHTML = "";
+    refs.calcEmployeeStatus.className = "status";
+    refs.calcEmployeeStatus.textContent = "Сотрудник не найден.";
+    return;
+  }
+
+  const employeePlannedHours = sumHours(dayTasks.filter((task) => task.employeeId === employeeId));
+  const employeeAvailableHours = state.settings.hoursPerDay;
+  const employeeDiff = employeeAvailableHours - employeePlannedHours;
+
+  refs.calcEmployeeSummary.innerHTML = [
+    summaryItem(`Сотрудник`, escapeHtml(employee.name)),
+    summaryItem("Доступно часов (сотрудник)", fmt(employeeAvailableHours)),
+    summaryItem("Запланировано (сотрудник)", fmt(employeePlannedHours)),
+    summaryItem(
+      employeeDiff >= 0 ? "Остаток часов (сотрудник)" : "Перегрузка (сотрудник)",
+      fmt(Math.abs(employeeDiff)),
+    ),
+  ].join("");
+
+  if (employeePlannedHours === employeeAvailableHours) {
+    refs.calcEmployeeStatus.className = "status ok";
+    refs.calcEmployeeStatus.textContent = `Сотрудник ${employee.name}: полностью запланирован по часам.`;
+    return;
+  }
+
+  refs.calcEmployeeStatus.className = "status warn";
+  if (employeePlannedHours < employeeAvailableHours) {
+    refs.calcEmployeeStatus.textContent = `Сотрудник ${employee.name}: недозагрузка ${fmt(employeeAvailableHours - employeePlannedHours)} ч.`;
+    return;
+  }
+
+  refs.calcEmployeeStatus.textContent = `Сотрудник ${employee.name}: перегрузка ${fmt(employeePlannedHours - employeeAvailableHours)} ч.`;
 }
 
 function renderDailyBreakdown(dayTasks) {
