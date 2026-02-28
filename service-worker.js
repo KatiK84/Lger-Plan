@@ -1,7 +1,9 @@
-const CACHE_NAME = "lager-plan-cache-v14";
+const CACHE_NAME = "lager-plan-cache-v15";
 const APP_ASSETS = [
   "./",
   "./index.html",
+  "./week.html",
+  "./settings.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",

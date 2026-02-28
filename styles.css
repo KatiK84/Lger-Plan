@@ -37,6 +37,37 @@ body {
   opacity: 0.92;
 }
 
+.topnav {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.nav-btn.nav-active {
+  background: #ffffff;
+  color: #1f6f5f;
+  border-color: #ffffff;
+  font-weight: 700;
+}
+
 .container {
   max-width: 1240px;
   margin: 0 auto;
@@ -322,6 +353,25 @@ tr.completed-row td {
   max-height: 300px;
   overflow: auto;
   border-radius: 8px;
+}
+
+body[data-page="day"] #weekPlanSection,
+body[data-page="day"] #weekCalcSection,
+body[data-page="day"] #settingsSection {
+  display: none;
+}
+
+body[data-page="week"] #dayPlanSection,
+body[data-page="week"] #dayCalcSection,
+body[data-page="week"] #settingsSection {
+  display: none;
+}
+
+body[data-page="settings"] #dayPlanSection,
+body[data-page="settings"] #dayCalcSection,
+body[data-page="settings"] #weekPlanSection,
+body[data-page="settings"] #weekCalcSection {
+  display: none;
 }
 
 @media (max-width: 980px) {
