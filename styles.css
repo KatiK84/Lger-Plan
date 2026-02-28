@@ -116,6 +116,12 @@ select {
   flex-wrap: wrap;
 }
 
+.actions-row.after-table {
+  justify-content: flex-start;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
 .btn {
   height: 36px;
   border: 0;

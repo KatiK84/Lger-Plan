@@ -265,10 +265,16 @@ function onDayTasksTableClick(event) {
 
 function onClearCompletedDayTasks() {
   const selectedDate = refs.selectedDate.value;
-  const completedCount = state.dayTasks.filter((task) => task.date === selectedDate && task.completed).length;
+  const completedTasks = state.dayTasks.filter((task) => task.date === selectedDate && task.completed);
+  const completedCount = completedTasks.length;
   if (completedCount === 0) {
     window.alert("На выбранную дату нет выполненных задач.");
     return;
+  }
+
+  const shouldPrint = window.confirm("Распечатать итоги дня?");
+  if (shouldPrint) {
+    printCompletedDayReport(selectedDate, completedTasks);
   }
 
   state.dayTasks = state.dayTasks.filter((task) => !(task.date === selectedDate && task.completed));
@@ -785,6 +791,67 @@ function loadState() {
 
 function syncStaffCountWithEmployees() {
   state.settings.staffCount = state.employees.length;
+}
+
+function printCompletedDayReport(selectedDate, completedTasks) {
+  const rows = completedTasks
+    .map((task) => {
+      const employee = getEmployeeById(task.employeeId);
+      return `
+        <tr>
+          <td>${escapeHtml(employee?.name || "-")}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
+          <td>${fmt(task.hours)}</td>
+          <td>${escapeHtml(task.orderComment || "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const totalHours = sumHours(completedTasks);
+
+  const win = window.open("", "_blank", "width=980,height=740");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>Итоги дня: ${escapeHtml(selectedDate)}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 6px; }
+          p { margin: 0 0 14px; color: #555; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+          .total { font-weight: 700; margin-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <h1>Итоги дня</h1>
+        <p>Дата: ${escapeHtml(selectedDate)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Ответственный</th>
+              <th>Задача</th>
+              <th>Время</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total">Итого выполнено часов: ${fmt(totalHours)}</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 
 function getTaskFromRaw(task) {
