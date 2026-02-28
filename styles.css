@@ -243,6 +243,28 @@ tr.completed-row td {
   width: 100%;
 }
 
+.employee-free-table {
+  table-layout: fixed;
+}
+
+.employee-free-table th:nth-child(1) {
+  width: 40%;
+}
+
+.employee-free-table th:nth-child(2),
+.employee-free-table th:nth-child(3) {
+  width: 18%;
+}
+
+.employee-free-table th:nth-child(4) {
+  width: 24%;
+}
+
+.employee-free-table th.num-head,
+.employee-free-table td.num {
+  text-align: center;
+}
+
 .employee-free-table .free-overload td {
   color: #8d2f25;
   font-weight: 600;

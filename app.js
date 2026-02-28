@@ -669,8 +669,8 @@ function renderEmployeeFreeHours(dayTasks) {
       <thead>
         <tr>
           <th>Сотрудник</th>
-          <th>Запланировано</th>
-          <th>Свободно</th>
+          <th class="num-head">Запланировано</th>
+          <th class="num-head">Свободно</th>
           <th>Статус</th>
         </tr>
       </thead>
