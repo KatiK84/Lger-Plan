@@ -82,6 +82,7 @@ const refs = {
 
   calcSummary: document.getElementById("calcSummary"),
   calcEmployeeFilter: document.getElementById("calcEmployeeFilter"),
+  calcEmployeeFreeList: document.getElementById("calcEmployeeFreeList"),
   calcTaskTypeBreakdown: document.getElementById("calcTaskTypeBreakdown"),
   calcStatus: document.getElementById("calcStatus"),
 
@@ -582,6 +583,8 @@ function renderDayCalc() {
   const dayTasks = state.dayTasks.filter((task) => task.date === selectedDate && !task.completed);
   const selectedEmployeeId = refs.calcEmployeeFilter.value;
 
+  renderEmployeeFreeHours(dayTasks);
+
   if (selectedEmployeeId && selectedEmployeeId !== "all") {
     const employee = getEmployeeById(selectedEmployeeId);
     const employeeName = employee?.name || "Сотрудник";
@@ -633,6 +636,49 @@ function renderDayCalc() {
 
   refs.calcStatus.className = "status warn";
   refs.calcStatus.textContent = `Не хватает часов: ${fmt(plannedHours - availableHours)}.`;
+}
+
+function renderEmployeeFreeHours(dayTasks) {
+  if (state.employees.length === 0) {
+    refs.calcEmployeeFreeList.innerHTML = "<div class=\"breakdown-empty\">Сотрудников в списке нет.</div>";
+    return;
+  }
+
+  const rows = state.employees
+    .map((employee) => {
+      const plannedHours = sumHours(dayTasks.filter((task) => task.employeeId === employee.id));
+      const freeHours = state.settings.hoursPerDay - plannedHours;
+      const freeLabel = freeHours >= 0 ? fmt(freeHours) : `-${fmt(Math.abs(freeHours))}`;
+      const freeTitle = freeHours >= 0 ? "Свободно" : "Перегрузка";
+      const rowClass = freeHours < 0 ? "free-overload" : "";
+
+      return `
+        <tr class="${rowClass}">
+          <td>${escapeHtml(employee.name)}</td>
+          <td class="num">${fmt(plannedHours)}</td>
+          <td class="num">${freeLabel}</td>
+          <td>${freeTitle}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  refs.calcEmployeeFreeList.innerHTML = `
+    <h3>Свободные часы по сотрудникам</h3>
+    <table class="breakdown-table employee-free-table">
+      <thead>
+        <tr>
+          <th>Сотрудник</th>
+          <th>Запланировано</th>
+          <th>Свободно</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
 }
 
 function renderDailyBreakdown(dayTasks, title = "Загрузка по типам задач") {

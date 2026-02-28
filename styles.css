@@ -243,6 +243,11 @@ tr.completed-row td {
   width: 100%;
 }
 
+.employee-free-table .free-overload td {
+  color: #8d2f25;
+  font-weight: 600;
+}
+
 .breakdown-empty {
   background: #f8fbfa;
   border: 1px solid var(--line);
