@@ -246,7 +246,20 @@ function onDayTasksTableClick(event) {
   const taskId = button.dataset.id;
   const action = button.dataset.action;
   if (action === "delete") {
-    state.dayTasks = state.dayTasks.filter((task) => task.id !== taskId);
+    const task = state.dayTasks.find((item) => item.id === taskId);
+    if (!task) {
+      return;
+    }
+
+    if (!task.completed) {
+      state.dayTasks = state.dayTasks.map((item) => (
+        item.id === taskId
+          ? { ...item, completed: true }
+          : item
+      ));
+    } else {
+      state.dayTasks = state.dayTasks.filter((item) => item.id !== taskId);
+    }
   } else if (action === "toggle-complete") {
     state.dayTasks = state.dayTasks.map((task) => {
       if (task.id !== taskId) {
@@ -541,7 +554,7 @@ function renderDayTasks() {
           <td>${escapeHtml(task.orderComment || "-")}</td>
           <td>
             <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
-            <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">Удалить</button>
+            <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">${task.completed ? "Удалить совсем" : "Завершить"}</button>
           </td>
         </tr>
       `;
