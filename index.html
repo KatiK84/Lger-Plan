@@ -85,7 +85,7 @@
       <h2>План на неделю</h2>
       <form id="weekTaskForm" class="inline-form week-form">
         <select id="weekTaskType" required></select>
-        <select id="weekHours" required></select>
+        <input id="weekHours" type="number" min="0" step="0.25" placeholder="Часы" required>
         <input id="weekComment" placeholder="Комментарий">
         <button id="weekSubmitBtn" type="submit" class="btn">Добавить в неделю</button>
         <button id="cancelWeekEditBtn" type="button" class="btn muted" hidden>Отмена</button>

@@ -448,7 +448,7 @@ function startWeekTaskEdit(taskId) {
 
   editState.weekTaskId = task.id;
   refs.weekTaskType.value = getTaskLabel(task);
-  setSelectValueWithFallback(refs.weekHours, task.hours, `${fmt(task.hours)} ч`);
+  refs.weekHours.value = String(task.hours);
   refs.weekComment.value = task.comment || "";
   refs.weekSubmitBtn.textContent = "Сохранить";
   refs.cancelWeekEditBtn.hidden = false;
@@ -468,7 +468,7 @@ function resetWeekTaskEditor() {
   editState.weekTaskId = null;
   refs.weekTaskForm.reset();
   renderTaskTypeOptions();
-  refs.weekHours.value = "1";
+  refs.weekHours.value = "";
   refs.weekSubmitBtn.textContent = "Добавить в неделю";
   refs.cancelWeekEditBtn.hidden = true;
 }
@@ -741,7 +741,7 @@ function renderEmployeeOptions() {
   const currentFilter = refs.dayEmployeeFilter.value || "all";
   const currentCalcFilter = refs.calcEmployeeFilter.value || "all";
 
-  refs.dayEmployee.innerHTML = `<option value="">Выберите сотрудника</option>${options}`;
+  refs.dayEmployee.innerHTML = `<option value="" selected>Выберите сотрудника</option>${options}`;
   refs.dayEmployeeFilter.innerHTML = `<option value="all">все</option>${options}`;
   refs.calcEmployeeFilter.innerHTML = `<option value="all">все сотрудники</option>${options}`;
   refs.dayEmployee.value = "";
@@ -789,19 +789,14 @@ function renderTaskTypeOptions() {
 
 function renderHourOptions() {
   const dayCurrent = refs.dayHours.value;
-  const weekCurrent = refs.weekHours.value;
   const options = HOUR_OPTIONS
     .map((option) => `<option value="${option.value}">${option.label}</option>`)
     .join("");
 
   refs.dayHours.innerHTML = options;
-  refs.weekHours.innerHTML = options;
 
   refs.dayHours.value = HOUR_OPTIONS.some((option) => option.value === dayCurrent)
     ? dayCurrent
-    : "1";
-  refs.weekHours.value = HOUR_OPTIONS.some((option) => option.value === weekCurrent)
-    ? weekCurrent
     : "1";
 }
 
@@ -930,7 +925,8 @@ function renderEmployeeFreeHours(dayTasks) {
   const rows = state.employees
     .map((employee) => {
       const plannedHours = sumHours(dayTasks.filter((task) => task.employeeId === employee.id));
-      const freeHours = state.settings.hoursPerDay - plannedHours;
+      const freeHoursRaw = state.settings.hoursPerDay - plannedHours;
+      const freeHours = Math.abs(freeHoursRaw) < 0.0001 ? 0 : freeHoursRaw;
       const freeLabel = freeHours >= 0 ? fmt(freeHours) : `-${fmt(Math.abs(freeHours))}`;
       const freeTitle = freeHours < 0
         ? "Перегрузка"
