@@ -48,6 +48,10 @@ const defaultState = {
 };
 
 let state = loadState();
+const editState = {
+  dayTaskId: null,
+  weekTaskId: null,
+};
 
 const refs = {
   staffCount: document.getElementById("staffCount"),
@@ -70,6 +74,8 @@ const refs = {
   dayTaskType: document.getElementById("dayTaskType"),
   dayHours: document.getElementById("dayHours"),
   dayOrder: document.getElementById("dayOrder"),
+  daySubmitBtn: document.getElementById("daySubmitBtn"),
+  cancelDayEditBtn: document.getElementById("cancelDayEditBtn"),
   dayTasksBody: document.getElementById("dayTasksBody"),
   clearCompletedDayBtn: document.getElementById("clearCompletedDayBtn"),
   printEmployeePlanBtn: document.getElementById("printEmployeePlanBtn"),
@@ -78,6 +84,8 @@ const refs = {
   weekTaskType: document.getElementById("weekTaskType"),
   weekHours: document.getElementById("weekHours"),
   weekComment: document.getElementById("weekComment"),
+  weekSubmitBtn: document.getElementById("weekSubmitBtn"),
+  cancelWeekEditBtn: document.getElementById("cancelWeekEditBtn"),
   printWeekCompletedBtn: document.getElementById("printWeekCompletedBtn"),
   printWeekPlanBtn: document.getElementById("printWeekPlanBtn"),
   weekTasksBody: document.getElementById("weekTasksBody"),
@@ -118,11 +126,13 @@ function bindEvents() {
   refs.calcEmployeeFilter.addEventListener("change", renderDayCalc);
 
   refs.dayTaskForm.addEventListener("submit", onAddDayTask);
+  refs.cancelDayEditBtn.addEventListener("click", onCancelDayEdit);
   refs.dayTasksBody.addEventListener("click", onDayTasksTableClick);
   refs.clearCompletedDayBtn.addEventListener("click", onClearCompletedDayTasks);
   refs.printEmployeePlanBtn.addEventListener("click", onPrintEmployeePlan);
 
   refs.weekTaskForm.addEventListener("submit", onAddWeekTask);
+  refs.cancelWeekEditBtn.addEventListener("click", onCancelWeekEdit);
   refs.weekTasksBody.addEventListener("click", onWeekTasksTableClick);
   refs.printWeekCompletedBtn.addEventListener("click", onPrintWeekCompletedTasks);
   refs.printWeekPlanBtn.addEventListener("click", onPrintWeekPlan);
@@ -223,20 +233,32 @@ function onAddDayTask(event) {
     return;
   }
 
-  state.dayTasks.push({
-    id: id(),
-    date: refs.selectedDate.value,
-    employeeId,
-    taskType,
-    hours: Math.max(0, toNumber(refs.dayHours.value)),
-    orderComment: refs.dayOrder.value.trim(),
-    completed: false,
-  });
+  if (editState.dayTaskId) {
+    state.dayTasks = state.dayTasks.map((task) => (
+      task.id === editState.dayTaskId
+        ? {
+          ...task,
+          date: refs.selectedDate.value,
+          employeeId,
+          taskType,
+          hours: Math.max(0, toNumber(refs.dayHours.value)),
+          orderComment: refs.dayOrder.value.trim(),
+        }
+        : task
+    ));
+  } else {
+    state.dayTasks.push({
+      id: id(),
+      date: refs.selectedDate.value,
+      employeeId,
+      taskType,
+      hours: Math.max(0, toNumber(refs.dayHours.value)),
+      orderComment: refs.dayOrder.value.trim(),
+      completed: false,
+    });
+  }
 
-  refs.dayTaskForm.reset();
-  renderEmployeeOptions();
-  renderTaskTypeOptions();
-  refs.dayHours.value = "1";
+  resetDayTaskEditor();
 
   persist();
   renderDayAndCalc();
@@ -275,10 +297,21 @@ function onDayTasksTableClick(event) {
         completed: !task.completed,
       };
     });
+  } else if (action === "edit") {
+    startDayTaskEdit(taskId);
+    return;
+  }
+
+  if (editState.dayTaskId === taskId && action !== "edit") {
+    resetDayTaskEditor();
   }
 
   persist();
   renderDayAndCalc();
+}
+
+function onCancelDayEdit() {
+  resetDayTaskEditor();
 }
 
 function onClearCompletedDayTasks() {
@@ -308,17 +341,28 @@ function onAddWeekTask(event) {
     return;
   }
 
-  state.weekTasks.push({
-    id: id(),
-    taskType,
-    hours: Math.max(0, toNumber(refs.weekHours.value)),
-    comment: refs.weekComment.value.trim(),
-    completed: false,
-  });
+  if (editState.weekTaskId) {
+    state.weekTasks = state.weekTasks.map((task) => (
+      task.id === editState.weekTaskId
+        ? {
+          ...task,
+          taskType,
+          hours: Math.max(0, toNumber(refs.weekHours.value)),
+          comment: refs.weekComment.value.trim(),
+        }
+        : task
+    ));
+  } else {
+    state.weekTasks.push({
+      id: id(),
+      taskType,
+      hours: Math.max(0, toNumber(refs.weekHours.value)),
+      comment: refs.weekComment.value.trim(),
+      completed: false,
+    });
+  }
 
-  refs.weekTaskForm.reset();
-  renderTaskTypeOptions();
-  refs.weekHours.value = "1";
+  resetWeekTaskEditor();
 
   persist();
   renderWeekTasks();
@@ -358,11 +402,92 @@ function onWeekTasksTableClick(event) {
         completed: !task.completed,
       };
     });
+  } else if (action === "edit") {
+    startWeekTaskEdit(taskId);
+    return;
+  }
+
+  if (editState.weekTaskId === taskId && action !== "edit") {
+    resetWeekTaskEditor();
   }
 
   persist();
   renderWeekTasks();
   renderWeekCalc();
+}
+
+function onCancelWeekEdit() {
+  resetWeekTaskEditor();
+}
+
+function startDayTaskEdit(taskId) {
+  const task = state.dayTasks.find((item) => item.id === taskId);
+  if (!task) {
+    return;
+  }
+
+  if (refs.selectedDate.value !== task.date) {
+    refs.selectedDate.value = task.date;
+    renderDayAndCalc();
+  }
+
+  editState.dayTaskId = task.id;
+  refs.dayEmployee.value = task.employeeId || "";
+  refs.dayTaskType.value = getTaskLabel(task);
+  setSelectValueWithFallback(refs.dayHours, task.hours, `${fmt(task.hours)} ч`);
+  refs.dayOrder.value = task.orderComment || "";
+  refs.daySubmitBtn.textContent = "Сохранить";
+  refs.cancelDayEditBtn.hidden = false;
+}
+
+function startWeekTaskEdit(taskId) {
+  const task = state.weekTasks.find((item) => item.id === taskId);
+  if (!task) {
+    return;
+  }
+
+  editState.weekTaskId = task.id;
+  refs.weekTaskType.value = getTaskLabel(task);
+  setSelectValueWithFallback(refs.weekHours, task.hours, `${fmt(task.hours)} ч`);
+  refs.weekComment.value = task.comment || "";
+  refs.weekSubmitBtn.textContent = "Сохранить";
+  refs.cancelWeekEditBtn.hidden = false;
+}
+
+function resetDayTaskEditor() {
+  editState.dayTaskId = null;
+  refs.dayTaskForm.reset();
+  renderEmployeeOptions();
+  renderTaskTypeOptions();
+  refs.dayHours.value = "1";
+  refs.daySubmitBtn.textContent = "Добавить в день";
+  refs.cancelDayEditBtn.hidden = true;
+}
+
+function resetWeekTaskEditor() {
+  editState.weekTaskId = null;
+  refs.weekTaskForm.reset();
+  renderTaskTypeOptions();
+  refs.weekHours.value = "1";
+  refs.weekSubmitBtn.textContent = "Добавить в неделю";
+  refs.cancelWeekEditBtn.hidden = true;
+}
+
+function setSelectValueWithFallback(select, value, label) {
+  const stringValue = String(value);
+  Array.from(select.options)
+    .filter((option) => option.dataset.custom === "1")
+    .forEach((option) => option.remove());
+
+  if (!Array.from(select.options).some((option) => option.value === stringValue)) {
+    const customOption = document.createElement("option");
+    customOption.value = stringValue;
+    customOption.textContent = label;
+    customOption.dataset.custom = "1";
+    select.append(customOption);
+  }
+
+  select.value = stringValue;
 }
 
 function onPrintWeekPlan() {
@@ -613,17 +738,13 @@ function renderEmployeeOptions() {
     .map((employee) => `<option value="${employee.id}">${escapeHtml(employee.name)}</option>`)
     .join("");
 
-  const currentDayEmployee = refs.dayEmployee.value;
   const currentFilter = refs.dayEmployeeFilter.value || "all";
   const currentCalcFilter = refs.calcEmployeeFilter.value || "all";
 
-  refs.dayEmployee.innerHTML = options;
+  refs.dayEmployee.innerHTML = `<option value="">Выберите сотрудника</option>${options}`;
   refs.dayEmployeeFilter.innerHTML = `<option value="all">все</option>${options}`;
   refs.calcEmployeeFilter.innerHTML = `<option value="all">все сотрудники</option>${options}`;
-
-  if (state.employees.some((employee) => employee.id === currentDayEmployee)) {
-    refs.dayEmployee.value = currentDayEmployee;
-  }
+  refs.dayEmployee.value = "";
 
   refs.dayEmployeeFilter.value = state.employees.some((employee) => employee.id === currentFilter)
     ? currentFilter
@@ -710,6 +831,7 @@ function renderDayTasks() {
           <td class="num">${fmt(task.hours)}</td>
           <td>${escapeHtml(task.orderComment || "-")}</td>
           <td>
+            <button class="btn secondary" data-id="${task.id}" data-action="edit" type="button">Редактировать</button>
             <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
             <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">${task.completed ? "Удалить совсем" : "Завершить"}</button>
           </td>
@@ -729,6 +851,7 @@ function renderWeekTasks() {
         <td class="num">${fmt(task.hours)}</td>
         <td>${escapeHtml(task.comment || "-")}</td>
         <td>
+          <button class="btn secondary" data-id="${task.id}" data-action="edit" type="button">Редактировать</button>
           <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
           <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">${task.completed ? "Удалить совсем" : "Завершить"}</button>
         </td>

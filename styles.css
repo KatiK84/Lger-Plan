@@ -118,11 +118,11 @@ select {
 }
 
 .inline-form.day-form {
-  grid-template-columns: 1fr 1fr 0.7fr 1fr auto;
+  grid-template-columns: 1fr 1fr 0.7fr 1fr auto auto;
 }
 
 .inline-form.week-form {
-  grid-template-columns: 1fr 0.7fr 1fr auto;
+  grid-template-columns: 1fr 0.7fr 1fr auto auto;
 }
 
 .grid3 {

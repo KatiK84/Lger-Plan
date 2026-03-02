@@ -42,7 +42,8 @@
         <select id="dayTaskType" required></select>
         <select id="dayHours" required></select>
         <input id="dayOrder" placeholder="Номер заказа / комментарий">
-        <button type="submit" class="btn">Добавить в день</button>
+        <button id="daySubmitBtn" type="submit" class="btn">Добавить в день</button>
+        <button id="cancelDayEditBtn" type="button" class="btn muted" hidden>Отмена</button>
       </form>
 
       <div class="actions-row">
@@ -86,7 +87,8 @@
         <select id="weekTaskType" required></select>
         <select id="weekHours" required></select>
         <input id="weekComment" placeholder="Комментарий">
-        <button type="submit" class="btn">Добавить в неделю</button>
+        <button id="weekSubmitBtn" type="submit" class="btn">Добавить в неделю</button>
+        <button id="cancelWeekEditBtn" type="button" class="btn muted" hidden>Отмена</button>
       </form>
       <div class="actions-row">
         <button id="printWeekCompletedBtn" class="btn muted" type="button">Печать закрытых задач недели</button>
