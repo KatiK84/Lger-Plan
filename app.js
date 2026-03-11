@@ -617,14 +617,18 @@ function onPrintWeekCompletedTasks() {
 
 function onPrintEmployeePlan() {
   const selectedDate = refs.selectedDate.value;
-  let employeeId = refs.dayEmployeeFilter.value;
+  const employeeId = refs.dayEmployeeFilter.value;
+  const taskTypeFilter = refs.dayTaskTypeFilter.value;
+  const dayTasksForPrint = state.dayTasks
+    .filter((task) => task.date === selectedDate && !task.completed)
+    .filter((task) => (taskTypeFilter === "all" ? true : getTaskLabel(task) === taskTypeFilter));
 
   if (employeeId === "all") {
-    employeeId = refs.dayEmployee.value;
-  }
-
-  if (!employeeId) {
-    window.alert("Выберите сотрудника в фильтре.");
+    if (dayTasksForPrint.length === 0) {
+      window.alert("На выбранную дату нет задач для печати.");
+      return;
+    }
+    printTeamDayPlan(selectedDate, dayTasksForPrint);
     return;
   }
 
@@ -634,8 +638,8 @@ function onPrintEmployeePlan() {
     return;
   }
 
-  const rows = state.dayTasks
-    .filter((task) => task.date === selectedDate && task.employeeId === employeeId && !task.completed)
+  const rows = dayTasksForPrint
+    .filter((task) => task.employeeId === employeeId)
     .map((task) => `
       <tr>
         <td>${escapeHtml(getTaskLabel(task))}</td>
@@ -678,6 +682,72 @@ function onPrintEmployeePlan() {
           </thead>
           <tbody>${rows || "<tr><td colspan='3'>Нет задач на выбранную дату</td></tr>"}</tbody>
         </table>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function printTeamDayPlan(selectedDate, dayTasks) {
+  const rows = dayTasks
+    .slice()
+    .sort((a, b) => {
+      const aEmployee = getEmployeeById(a.employeeId)?.name || "";
+      const bEmployee = getEmployeeById(b.employeeId)?.name || "";
+      return aEmployee.localeCompare(bEmployee, "ru") || getTaskLabel(a).localeCompare(getTaskLabel(b), "ru");
+    })
+    .map((task) => {
+      const employee = getEmployeeById(task.employeeId);
+      return `
+        <tr>
+          <td>${escapeHtml(employee?.name || "-")}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
+          <td>${fmt(task.hours)}</td>
+          <td>${escapeHtml(task.orderComment || "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const totalHours = sumHours(dayTasks);
+  const win = window.open("", "_blank", "width=1100,height=760");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>Общий план смены</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 6px; }
+          p { margin: 0 0 12px; color: #555; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+          .total { margin-top: 10px; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        <h1>Общий план смены</h1>
+        <p>Дата: ${escapeHtml(selectedDate)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Сотрудник</th>
+              <th>Задача</th>
+              <th>Планируемое время</th>
+              <th>Номер / комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total">Итого по смене: ${fmt(totalHours)} ч.</div>
       </body>
     </html>
   `);
@@ -809,6 +879,10 @@ function renderDayTasks() {
   const selectedDate = refs.selectedDate.value;
   const employeeFilter = refs.dayEmployeeFilter.value;
   const taskTypeFilter = refs.dayTaskTypeFilter.value;
+
+  refs.printEmployeePlanBtn.textContent = employeeFilter === "all"
+    ? "Печать общего плана"
+    : "Печать плана сотрудника";
 
   const filteredTasks = state.dayTasks
     .filter((task) => task.date === selectedDate)
