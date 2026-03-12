@@ -45,6 +45,7 @@ const defaultState = {
   taskTypes: [...DEFAULT_TASK_TYPES],
   dayTasks: [],
   weekTasks: [],
+  palletEntries: [],
 };
 
 let state = loadState();
@@ -79,6 +80,17 @@ const refs = {
   dayTasksBody: document.getElementById("dayTasksBody"),
   clearCompletedDayBtn: document.getElementById("clearCompletedDayBtn"),
   printEmployeePlanBtn: document.getElementById("printEmployeePlanBtn"),
+
+  palletForm: document.getElementById("palletForm"),
+  palletDateLabel: document.getElementById("palletDateLabel"),
+  palletInbound: document.getElementById("palletInbound"),
+  palletOutbound: document.getElementById("palletOutbound"),
+  palletSummaryBody: document.getElementById("palletSummaryBody"),
+  palletStatus: document.getElementById("palletStatus"),
+  exportPalletWeekBtn: document.getElementById("exportPalletWeekBtn"),
+  exportPalletMonthBtn: document.getElementById("exportPalletMonthBtn"),
+  exportPalletQuarterBtn: document.getElementById("exportPalletQuarterBtn"),
+  exportPalletYearBtn: document.getElementById("exportPalletYearBtn"),
 
   weekTaskForm: document.getElementById("weekTaskForm"),
   weekTaskType: document.getElementById("weekTaskType"),
@@ -120,7 +132,7 @@ function bindEvents() {
   refs.taskTypeForm.addEventListener("submit", onAddTaskType);
   refs.taskTypesBody.addEventListener("click", onTaskTypesTableClick);
 
-  refs.selectedDate.addEventListener("change", renderDayAndCalc);
+  refs.selectedDate.addEventListener("change", onSelectedDateChange);
   refs.dayEmployeeFilter.addEventListener("change", renderDayTasks);
   refs.dayTaskTypeFilter.addEventListener("change", renderDayTasks);
   refs.calcEmployeeFilter.addEventListener("change", renderDayCalc);
@@ -131,11 +143,22 @@ function bindEvents() {
   refs.clearCompletedDayBtn.addEventListener("click", onClearCompletedDayTasks);
   refs.printEmployeePlanBtn.addEventListener("click", onPrintEmployeePlan);
 
+  refs.palletForm.addEventListener("submit", onSavePalletForDay);
+  refs.exportPalletWeekBtn.addEventListener("click", () => onExportPallets("week"));
+  refs.exportPalletMonthBtn.addEventListener("click", () => onExportPallets("month"));
+  refs.exportPalletQuarterBtn.addEventListener("click", () => onExportPallets("quarter"));
+  refs.exportPalletYearBtn.addEventListener("click", () => onExportPallets("year"));
+
   refs.weekTaskForm.addEventListener("submit", onAddWeekTask);
   refs.cancelWeekEditBtn.addEventListener("click", onCancelWeekEdit);
   refs.weekTasksBody.addEventListener("click", onWeekTasksTableClick);
   refs.printWeekCompletedBtn.addEventListener("click", onPrintWeekCompletedTasks);
   refs.printWeekPlanBtn.addEventListener("click", onPrintWeekPlan);
+}
+
+function onSelectedDateChange() {
+  renderDayAndCalc();
+  renderPalletSection();
 }
 
 function onSaveSettings() {
@@ -429,6 +452,7 @@ function startDayTaskEdit(taskId) {
   if (refs.selectedDate.value !== task.date) {
     refs.selectedDate.value = task.date;
     renderDayAndCalc();
+    renderPalletSection();
   }
 
   editState.dayTaskId = task.id;
@@ -690,6 +714,99 @@ function onPrintEmployeePlan() {
   win.print();
 }
 
+function onSavePalletForDay(event) {
+  event.preventDefault();
+
+  const selectedDate = refs.selectedDate.value || todayIso();
+  const inbound = parsePalletInput(refs.palletInbound.value);
+  const outbound = parsePalletInput(refs.palletOutbound.value);
+  if (inbound === null || outbound === null) {
+    refs.palletStatus.className = "status warn";
+    refs.palletStatus.textContent = "Введите корректные неотрицательные числа паллет.";
+    return;
+  }
+
+  const existing = state.palletEntries.find((entry) => entry.date === selectedDate);
+  if (existing) {
+    existing.inbound = inbound;
+    existing.outbound = outbound;
+  } else {
+    state.palletEntries.push({
+      date: selectedDate,
+      inbound,
+      outbound,
+    });
+  }
+
+  persist();
+  renderPalletSection();
+
+  refs.palletStatus.className = "status ok";
+  refs.palletStatus.textContent = `Сохранено за ${formatDateRu(selectedDate)}.`;
+}
+
+function onExportPallets(periodKey) {
+  const selectedDate = refs.selectedDate.value || todayIso();
+  const period = getPalletPeriodConfig(periodKey, selectedDate);
+  const rows = getPalletDailyRows(period.start, period.end, { weekdaysOnly: period.weekdaysOnly });
+  const totals = sumPalletRows(rows);
+
+  const csvRows = [
+    ["Период", period.label],
+    ["Дата отчета", formatDateRu(selectedDate)],
+    [],
+    ["Дата", "Пришло паллет", "Отгружено паллет", "Итог"],
+    ...rows.map((row) => [
+      formatDateRu(row.date),
+      String(row.inbound),
+      String(row.outbound),
+      String(row.inbound - row.outbound),
+    ]),
+    ["ИТОГО", String(totals.inbound), String(totals.outbound), String(totals.inbound - totals.outbound)],
+  ];
+
+  downloadCsv(
+    `pallets-${periodKey}-${selectedDate}.csv`,
+    csvRows,
+  );
+}
+
+function renderPalletSection() {
+  const selectedDate = refs.selectedDate.value || todayIso();
+  const entry = state.palletEntries.find((item) => item.date === selectedDate);
+  refs.palletDateLabel.textContent = formatDateRu(selectedDate);
+  refs.palletInbound.value = entry ? String(entry.inbound) : "";
+  refs.palletOutbound.value = entry ? String(entry.outbound) : "";
+
+  refs.palletStatus.className = "pallet-note";
+  refs.palletStatus.textContent = entry
+    ? `Для этой даты сохранено: приход ${fmt(entry.inbound)} / отгрузка ${fmt(entry.outbound)}.`
+    : "Для этой даты запись по паллетам пока не сохранена.";
+
+  const weekPeriod = getPalletPeriodConfig("week", selectedDate);
+  const monthPeriod = getPalletPeriodConfig("month", selectedDate);
+  const quarterPeriod = getPalletPeriodConfig("quarter", selectedDate);
+  const yearPeriod = getPalletPeriodConfig("year", selectedDate);
+
+  const summaryRows = [
+    summarizePalletPeriod(weekPeriod),
+    summarizePalletPeriod(monthPeriod),
+    summarizePalletPeriod(quarterPeriod),
+    summarizePalletPeriod(yearPeriod),
+  ];
+
+  refs.palletSummaryBody.innerHTML = summaryRows
+    .map((item) => `
+      <tr>
+        <td>${escapeHtml(item.label)}</td>
+        <td class="num">${fmt(item.inbound)}</td>
+        <td class="num">${fmt(item.outbound)}</td>
+        <td class="num">${fmt(item.balance)}</td>
+      </tr>
+    `)
+    .join("");
+}
+
 function printTeamDayPlan(selectedDate, dayTasks) {
   const rows = dayTasks
     .slice()
@@ -763,6 +880,7 @@ function renderAll() {
   renderEmployeeOptions();
   renderTaskTypeOptions();
   renderDayAndCalc();
+  renderPalletSection();
   renderWeekTasks();
   renderWeekCalc();
 }
@@ -1190,6 +1308,20 @@ function loadState() {
       }))
       : [];
 
+    const palletEntries = Array.isArray(parsed?.palletEntries)
+      ? Array.from(
+          parsed.palletEntries
+            .map((entry) => ({
+              date: String(entry?.date || "").trim(),
+              inbound: Math.max(0, Math.floor(toNumber(entry?.inbound))),
+              outbound: Math.max(0, Math.floor(toNumber(entry?.outbound))),
+            }))
+            .filter((entry) => isIsoDateString(entry.date))
+            .reduce((map, entry) => map.set(entry.date, entry), new Map())
+            .values(),
+        )
+      : [];
+
     return {
       settings: {
         staffCount: employees.length > 0 ? employees.length : staffCount,
@@ -1199,6 +1331,7 @@ function loadState() {
       taskTypes,
       dayTasks,
       weekTasks,
+      palletEntries,
     };
   } catch {
     return structuredClone(defaultState);
@@ -1273,6 +1406,221 @@ function printCompletedDayReport(selectedDate, completedTasks) {
 function getTaskFromRaw(task) {
   const value = String(task?.taskType || task?.taskName || "").trim();
   return value || "Без типа";
+}
+
+function getPalletPeriodConfig(periodKey, selectedDate) {
+  if (periodKey === "week") {
+    const weekRange = getWeekMonFriRange(selectedDate);
+    return {
+      start: weekRange.start,
+      end: weekRange.end,
+      weekdaysOnly: true,
+      label: `Неделя (пн-пт): ${formatDateRu(weekRange.start)} - ${formatDateRu(weekRange.end)}`,
+    };
+  }
+
+  if (periodKey === "month") {
+    const monthRange = getMonthRange(selectedDate);
+    return {
+      start: monthRange.start,
+      end: monthRange.end,
+      weekdaysOnly: false,
+      label: `Месяц: ${formatDateRu(monthRange.start)} - ${formatDateRu(monthRange.end)}`,
+    };
+  }
+
+  if (periodKey === "quarter") {
+    const quarterRange = getQuarterRange(selectedDate);
+    return {
+      start: quarterRange.start,
+      end: quarterRange.end,
+      weekdaysOnly: false,
+      label: `Квартал: ${formatDateRu(quarterRange.start)} - ${formatDateRu(quarterRange.end)}`,
+    };
+  }
+
+  const yearRange = getYearRange(selectedDate);
+  return {
+    start: yearRange.start,
+    end: yearRange.end,
+    weekdaysOnly: false,
+    label: `Год: ${formatDateRu(yearRange.start)} - ${formatDateRu(yearRange.end)}`,
+  };
+}
+
+function summarizePalletPeriod(period) {
+  const rows = getPalletDailyRows(period.start, period.end, { weekdaysOnly: period.weekdaysOnly });
+  const totals = sumPalletRows(rows);
+  return {
+    label: period.label,
+    inbound: totals.inbound,
+    outbound: totals.outbound,
+    balance: totals.inbound - totals.outbound,
+  };
+}
+
+function getPalletDailyRows(startIso, endIso, options = {}) {
+  const rows = [];
+  const entriesByDate = new Map(
+    state.palletEntries.map((entry) => [entry.date, entry]),
+  );
+  const dates = listIsoDatesInRange(startIso, endIso);
+
+  for (const date of dates) {
+    if (options.weekdaysOnly && !isWeekdayIso(date)) {
+      continue;
+    }
+
+    const entry = entriesByDate.get(date);
+    rows.push({
+      date,
+      inbound: entry ? entry.inbound : 0,
+      outbound: entry ? entry.outbound : 0,
+    });
+  }
+
+  return rows;
+}
+
+function sumPalletRows(rows) {
+  return rows.reduce((sum, row) => ({
+    inbound: sum.inbound + row.inbound,
+    outbound: sum.outbound + row.outbound,
+  }), { inbound: 0, outbound: 0 });
+}
+
+function parsePalletInput(value) {
+  const raw = String(value).trim().replace(",", ".");
+  if (!raw) {
+    return 0;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.floor(parsed);
+}
+
+function getWeekMonFriRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const day = date.getDay();
+  const offsetToMonday = day === 0 ? -6 : (1 - day);
+
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + offsetToMonday);
+
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  return {
+    start: dateToIso(monday),
+    end: dateToIso(friday),
+  };
+}
+
+function getMonthRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0);
+
+  return {
+    start: dateToIso(start),
+    end: dateToIso(end),
+  };
+}
+
+function getQuarterRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const year = date.getFullYear();
+  const quarterStartMonth = Math.floor(date.getMonth() / 3) * 3;
+
+  const start = new Date(year, quarterStartMonth, 1);
+  const end = new Date(year, quarterStartMonth + 3, 0);
+
+  return {
+    start: dateToIso(start),
+    end: dateToIso(end),
+  };
+}
+
+function getYearRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const year = date.getFullYear();
+
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`,
+  };
+}
+
+function listIsoDatesInRange(startIso, endIso) {
+  const start = isoToDate(startIso);
+  const end = isoToDate(endIso);
+  const dates = [];
+
+  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    dates.push(dateToIso(cursor));
+  }
+
+  return dates;
+}
+
+function isWeekdayIso(isoDate) {
+  const day = isoToDate(isoDate).getDay();
+  return day >= 1 && day <= 5;
+}
+
+function isoToDate(isoDate) {
+  const [year, month, day] = String(isoDate).split("-").map((part) => Number(part));
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+function dateToIso(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateRu(isoDate) {
+  const [year, month, day] = String(isoDate).split("-");
+  if (!year || !month || !day) {
+    return String(isoDate);
+  }
+
+  return `${day}.${month}.${year}`;
+}
+
+function isIsoDateString(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value));
+}
+
+function downloadCsv(filename, rows) {
+  const csvContent = rows
+    .map((row) => row.map((cell) => escapeCsv(String(cell))).join(";"))
+    .join("\n");
+  const csvWithBom = `\uFEFF${csvContent}`;
+  const blob = new Blob([csvWithBom], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsv(value) {
+  if (value.includes(";") || value.includes("\n") || value.includes("\"")) {
+    return `"${value.replaceAll("\"", "\"\"")}"`;
+  }
+  return value;
 }
 
 function registerServiceWorker() {

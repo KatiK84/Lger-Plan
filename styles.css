@@ -125,6 +125,10 @@ select {
   grid-template-columns: 1fr 0.7fr 1fr auto auto;
 }
 
+.inline-form.pallet-form {
+  grid-template-columns: 1fr 1fr auto;
+}
+
 .grid3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(160px, 1fr));
@@ -265,6 +269,20 @@ tr.completed-row td {
   margin-top: 10px;
 }
 
+.pallet-date-note {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
+.pallet-note {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f8fbfa;
+  color: var(--muted);
+}
+
 .calc-breakdown h3 {
   margin: 0 0 8px;
   font-size: 16px;
@@ -272,6 +290,10 @@ tr.completed-row td {
 
 .breakdown-table {
   width: 100%;
+}
+
+.breakdown-table th.num-head {
+  text-align: right;
 }
 
 .employee-free-table {
@@ -363,12 +385,14 @@ body[data-page="day"] #settingsSection {
 
 body[data-page="week"] #dayPlanSection,
 body[data-page="week"] #dayCalcSection,
+body[data-page="week"] #palletSection,
 body[data-page="week"] #settingsSection {
   display: none;
 }
 
 body[data-page="settings"] #dayPlanSection,
 body[data-page="settings"] #dayCalcSection,
+body[data-page="settings"] #palletSection,
 body[data-page="settings"] #weekPlanSection,
 body[data-page="settings"] #weekCalcSection {
   display: none;
