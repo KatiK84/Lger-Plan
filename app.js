@@ -1,700 +1,1668 @@
-const RAW_ARTICLES = `|00 Внутреннее перемещение (доход)|Поступление|Техническая операция||Отчет "Оплата по фондам" из 1С|изменил название, было: "Доход - Внутреннее перемещение"
-|00 Внутреннее перемещение (расход)|Выбытие|Техническая операция||Отчет "Оплата по фондам" из 1С|изменил название, было: "Расход - Внутреннее перемещение"
-|01 фонд GH|Поступление|01 Операционная деятельность|оптовые продажи GH|Отчет "Оплата по фондам" из 1С|
-|01 фонд GH (возвраты)|Выбытие|01 Операционная деятельность|возврат денежных средств клиентам GH|Отчет "Оплата по фондам" из 1С|добавил/изменил статью "фонд возвратов клиентам"
-|02 фонд EH|Поступление|01 Операционная деятельность|розничные продажи со всех площадок|Отчет "Оплата по фондам" из 1С|не актуальный
-|02 фонд EH (возвраты)|Выбытие|01 Операционная деятельность|розничные продажи со всех площадок|Отчет "Оплата по фондам" из 1С|не актуальный
-|02 фонд MGH|Поступление|01 Операционная деятельность|мелкооптовые продажи (Bstock, Jobalots, Kleinanzeigen MGH, прямые продажи клиентам, Ebay MGH)|Отчет "Оплата по фондам" из 1С|
-|02 фонд MGH (возвраты)|Выбытие|01 Операционная деятельность|возврат денежных средств клиентам MGH|Отчет "Оплата по фондам" из 1С|добавил/изменил статью "фонд возвратов клиентам"
-|03 Залог НДС (входящий)|Поступление|01 Операционная деятельность|Залог от покупателя, который потом возвращается покупателю|Отчет "Оплата по фондам" из 1С|изменил название, было: "Залог на НДС входящий"
-|03 Залог НДС (исходящий)|Выбытие|01 Операционная деятельность|Залог от покупателя, который потом возвращается покупателю|Отчет "Оплата по фондам" из 1С|изменил название, было: "Залог на НДС исходящий"
-|03 фонд Налогов (o. LohnSt. Etc.) (выбытие)|Выбытие|01 Операционная деятельность|налоги, кроме (подоходного налога - Lohnsteuer)|Отчет "Оплата по фондам" из 1С|изменил название, было: "фонд налогов (o. LohnSt. Etc.)"
-|03 фонд Налогов (o. LohnSt. Etc.) (поступление)|Поступление|01 Операционная деятельность|возврат налога после перерасчета, кроме (подоходного налога - Lohnsteuer)|Отчет "Оплата по фондам" из 1С|изменил название, было: "фонд налогов (o. LohnSt. Etc.)"
-|04 фонд Абонентских плат|Выбытие|01 Операционная деятельность|абонентная плата за телефон, интернет, радио, маркетплейсы, банковские комиссии|Отчет "Оплата по фондам" из 1С|изменил название, было: "фонд абонентских плат"
-|04 фонд Административный (выбытие)|Выбытие|01 Операционная деятельность|представительские расходы, командировочные расходы руководящего состава и ключевого административного персонала, привлечение сторонних подрядчиков для поиска и обучения ключевого административного персонала|Отчет "Оплата по фондам" из 1С|добавил статью выбытия
-|04 фонд Административный (поступление)|Поступление|01 Операционная деятельность|возврат подотчетных средств, возврат подоходного налога, возврат переплат по ЗП и соц. выплатам, возврат коммунальных платежей|Отчет "Оплата по фондам" из 1С|изменил описание
-|04 фонд Непредвиденные расходы|Выбытие|01 Операционная деятельность|фонд нужен только для планирования бюджета, фактические расходы не относить|Отчет "Оплата по фондам" из 1С|изменил название и описание
-|04 фонд Подрядчиков|Выбытие|01 Операционная деятельность|оплата копирайтерам, налоговым консультантам (SEK), финансовый консалтинг|Отчет "Оплата по фондам" из 1С|изменил название
-|04 фонд Рекламы|Выбытие|01 Операционная деятельность|контекстная реклама, реклама на площадках|Отчет "Оплата по фондам" из 1С|изменил название
-|04 фонд Страховок|Выбытие|01 Операционная деятельность|страховки, не связанные с соц. выплатами|Отчет "Оплата по фондам" из 1С|изменил название
-|04 фонд Юридических услуг|Выбытие|01 Операционная деятельность|оплата услуг юристов, адвокатов и судебные издержки|Отчет "Оплата по фондам" из 1С|изменил название
-|05 фонд Аренды (выбытие)|Выбытие|01 Операционная деятельность|аренда офисов, складских помещений, аренда квартир для сотрудников|Отчет "Оплата по фондам" из 1С|изменил название
-|05 фонд Аренды (поступление)|Поступление|01 Операционная деятельность|возвраты по аренде и коммунальным платежам|Отчет "Оплата по фондам" из 1С|добавил статью поступления
-|05 фонд АХО|Выбытие|01 Операционная деятельность|картриджи, бумага, бытовая химия, канцтовары, благоустройство территории|Отчет "Оплата по фондам" из 1С|объединил статьи
-удалить|05 фонд благоустройства территории|Выбытие|01 Операционная деятельность|цветы, деревья, кусты, удобрение, декорации для двора|Отчет "Оплата по фондам" из 1С|не использовать
-удалить|05 фонд жизнедеятельности офиса|Выбытие|01 Операционная деятельность|картриджи для принтеров, бумага, бытовая химия|Отчет "Оплата по фондам" из 1С|не использовать
-удалить|05 фонд обновления рабочих инструментов|Выбытие|02 Инвестиционная деятельность|запасные части для сервера, кабели, манекены|Отчет "Оплата по фондам" из 1С|не использовать
-|05 фонд Оборудование|Выбытие|02 Инвестиционная деятельность|мебель, офисная техника, комплектующие, запасные части для сервера|Отчет "Оплата по фондам" из 1С|изменил название и описание
-|05 фонд Основные средства|Выбытие|02 Инвестиционная деятельность|покупка и ремонт дорогостоящей техники и транспорта от 850 EUR|Отчет "Оплата по фондам" из 1С|изменил название и описание
-|05 фонд Ремонт (капитальный)|Выбытие|02 Инвестиционная деятельность|капитальные улучшения объектов ОС|Отчет "Оплата по фондам" из 1С|инвестиционная деятельность
-|05 фонд Ремонт (текущий)|Выбытие|01 Операционная деятельность|текущий мелкий ремонт|Отчет "Оплата по фондам" из 1С|операционная деятельность
-|06 фонд Корпоративных расходов|Выбытие|01 Операционная деятельность|корпоративы, подарки, мероприятия|Отчет "Оплата по фондам" из 1С|изменил название и описание
-|06 фонд Найма|Выбытие|01 Операционная деятельность|расходы на поиск линейного персонала|Отчет "Оплата по фондам" из 1С|изменил название
-641|06 фонд Образования|Выбытие|01 Операционная деятельность|курсы и обучающие материалы линейного персонала|Отчет "Оплата по фондам" из 1С|изменил название
-поменять на 06 фонд Подрядчиков|06 фонд Провизион третьим лицам|Выбытие|01 Операционная деятельность|провизионы, комиссии, бонусы подрядчикам и посредникам|Отчет "Оплата по фондам" из 1С|изменил название
-|06 ФОТ (оклад)|Выбытие|01 Операционная деятельность|оклады местным сотрудникам, соц. отчисления, Lohnsteuer|Отчет "Оплата по фондам" из 1С|разделил оклад и провизион
-|06 ФОТ (провизион)|Выбытие|01 Операционная деятельность|бонусы, провизионы, премии местным сотрудникам|Отчет "Оплата по фондам" из 1С|разделил оклад и провизион
-|06 ФОТ (EM оклад)|Выбытие|01 Операционная деятельность|оклады сотрудникам удаленного офиса|Отчет "Оплата по фондам" из 1С|разделил оклад и провизион
-|06 ФОТ (EM провизион)|Выбытие|01 Операционная деятельность|бонусы, провизионы, премии удаленному офису|Отчет "Оплата по фондам" из 1С|разделил оклад и провизион
-|07 фонд Поставщиков (выбытие)|Выбытие|01 Операционная деятельность|приобретаемый товар|Отчет "Оплата по фондам" из 1С|изменил название
-|07 фонд Поставщиков (поступление)|Поступление|01 Операционная деятельность|возврат переплаты по приобретаемому товару|Отчет "Оплата по фондам" из 1С|
-|07 фонд Складской логистики|Выбытие|01 Операционная деятельность|жизнедеятельность склада: газ, расходники, упаковка, спецодежда|Отчет "Оплата по фондам" из 1С|важно не путать с АХО
-|07 фонд Складской логистики (техника)|Выбытие|01 Операционная деятельность|покупка и ремонт мелкого складского транспорта до 850 EUR|Отчет "Оплата по фондам" из 1С|изменил название и описание
-|07 фонд Транспортной логистики (входящая)|Выбытие|01 Операционная деятельность|логистика на приобретение товара|Отчет "Оплата по фондам" из 1С|изменил название
-|07 фонд Транспортной логистики (исходящая)|Выбытие|01 Операционная деятельность|логистика на отправку товара|Отчет "Оплата по фондам" из 1С|изменил название
-|08 фонд Кредитов (% по займам)|Выбытие|01 Операционная деятельность|выплата процентов по кредитам и займам|Отчет "Оплата по фондам" из 1С|изменил название
-|08 фонд Кредитов (выбытие)|Выбытие|03 Финансовая деятельность|выплата тела кредитов|Отчет "Оплата по фондам" из 1С|изменил название
-|08 фонд Кредитов (поступление)|Поступление|03 Финансовая деятельность|полученные кредиты и займы|Отчет "Оплата по фондам" из 1С|изменил название
-|09 фонд Благотворительности|Выбытие|01 Операционная деятельность|списания на благотворительность|Отчет "Оплата по фондам" из 1С|изменил название`;
+const STORAGE_KEY = "lager-plan-v1";
+const WORK_DAYS_PER_WEEK = 5;
+const DEFAULT_TASK_TYPES = [
+  "Приход товара",
+  "Уход товара",
+  "Сбор заказа GH",
+  "Сбор заказа MGH",
+  "Приемка товара",
+  "Инвентаризация MGH",
+  "Инвентаризация GH",
+  "Уборка",
+  "Командировка",
+  "Другие задачи",
+  "Планерка",
+  "Сортировка",
+];
+const HOUR_OPTIONS = [
+  { value: "0.25", label: "15 мин" },
+  { value: "0.5", label: "30 мин" },
+  { value: "0.75", label: "45 мин" },
+  { value: "1", label: "1 час" },
+  { value: "1.5", label: "1,5 часа" },
+  { value: "2", label: "2 часа" },
+  { value: "3", label: "3 часа" },
+  { value: "4", label: "4 часа" },
+  { value: "5", label: "5 часов" },
+  { value: "6", label: "6 часов" },
+  { value: "7", label: "7 часов" },
+  { value: "8", label: "8 часов" },
+  { value: "9", label: "9 часов" },
+];
 
-const SAMPLE_OPERATIONS = `Дата;Статья ДДС;Сумма;Группа;Комментарий
-2026-01-05;01 фонд GH;18500;Поступление;Оплата от клиента
-2026-01-08;07 фонд Поставщиков (выбытие);-9200;Выбытие;Оплата поставщику
-2026-01-11;07 фонд Транспортной логистики (исходящая);-1400;Выбытие;Отправки DHL
-2026-01-20;04 фонд Рекламы;-800;Выбытие;Маркетинг
-2026-02-02;02 фонд MGH;9500;Поступление;Продажи MGH
-2026-02-12;06 ФОТ (оклад);-4300;Выбытие;Зарплата
-2026-02-17;05 фонд Оборудование;-1300;Выбытие;Планшеты
-2026-03-04;08 фонд Кредитов (поступление);25000;Поступление;Получен кредит
-2026-03-18;08 фонд Кредитов (выбытие);-5000;Выбытие;Погашение кредита`; 
-
-const articleRows = parseArticleRows(RAW_ARTICLES);
-const activeArticleRows = articleRows.filter((row) => row.status !== "DELETE");
-const articleByName = buildArticleMap(activeArticleRows);
-
-const state = {
-  operations: [],
-  filteredOperations: [],
-  reportRows: [],
-  monthRows: [],
+const defaultState = {
+  settings: {
+    staffCount: 7,
+    hoursPerDay: 9,
+  },
+  employees: [
+    { id: id(), name: "Иван" },
+    { id: id(), name: "Александр" },
+    { id: id(), name: "Игорь" },
+    { id: id(), name: "Олена" },
+    { id: id(), name: "Денис" },
+  ],
+  taskTypes: [...DEFAULT_TASK_TYPES],
+  dayTasks: [],
+  weekTasks: [],
+  palletEntries: [],
 };
 
-const operationsFile = document.getElementById("operationsFile");
-const loadSampleBtn = document.getElementById("loadSampleBtn");
-const downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
-const fileStatus = document.getElementById("fileStatus");
-const dateFromInput = document.getElementById("dateFrom");
-const dateToInput = document.getElementById("dateTo");
-const activityFilter = document.getElementById("activityFilter");
-const resetFiltersBtn = document.getElementById("resetFilters");
-const downloadReportCsvBtn = document.getElementById("downloadReportCsv");
-const reportMetrics = document.getElementById("reportMetrics");
-const reportTableBody = document.getElementById("reportTableBody");
-const monthTableBody = document.getElementById("monthTableBody");
-const dictionarySearch = document.getElementById("dictionarySearch");
-const dictionaryBody = document.getElementById("dictionaryBody");
+let state = loadState();
+const editState = {
+  dayTaskId: null,
+  weekTaskId: null,
+};
+
+const refs = {
+  staffCount: document.getElementById("staffCount"),
+  hoursPerDay: document.getElementById("hoursPerDay"),
+  saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+
+  employeeForm: document.getElementById("employeeForm"),
+  employeeName: document.getElementById("employeeName"),
+  employeesBody: document.getElementById("employeesBody"),
+
+  taskTypeForm: document.getElementById("taskTypeForm"),
+  taskTypeName: document.getElementById("taskTypeName"),
+  taskTypesBody: document.getElementById("taskTypesBody"),
+
+  selectedDate: document.getElementById("selectedDate"),
+  dayEmployeeFilter: document.getElementById("dayEmployeeFilter"),
+  dayTaskTypeFilter: document.getElementById("dayTaskTypeFilter"),
+  dayTaskForm: document.getElementById("dayTaskForm"),
+  dayEmployee: document.getElementById("dayEmployee"),
+  dayTaskType: document.getElementById("dayTaskType"),
+  dayHours: document.getElementById("dayHours"),
+  dayOrder: document.getElementById("dayOrder"),
+  daySubmitBtn: document.getElementById("daySubmitBtn"),
+  cancelDayEditBtn: document.getElementById("cancelDayEditBtn"),
+  dayTasksBody: document.getElementById("dayTasksBody"),
+  clearCompletedDayBtn: document.getElementById("clearCompletedDayBtn"),
+  printEmployeePlanBtn: document.getElementById("printEmployeePlanBtn"),
+
+  palletForm: document.getElementById("palletForm"),
+  palletDateLabel: document.getElementById("palletDateLabel"),
+  palletInbound: document.getElementById("palletInbound"),
+  palletOutbound: document.getElementById("palletOutbound"),
+  palletSummaryBody: document.getElementById("palletSummaryBody"),
+  palletStatus: document.getElementById("palletStatus"),
+  exportPalletWeekBtn: document.getElementById("exportPalletWeekBtn"),
+  exportPalletMonthBtn: document.getElementById("exportPalletMonthBtn"),
+  exportPalletQuarterBtn: document.getElementById("exportPalletQuarterBtn"),
+  exportPalletYearBtn: document.getElementById("exportPalletYearBtn"),
+
+  weekTaskForm: document.getElementById("weekTaskForm"),
+  weekTaskType: document.getElementById("weekTaskType"),
+  weekHours: document.getElementById("weekHours"),
+  weekComment: document.getElementById("weekComment"),
+  weekSubmitBtn: document.getElementById("weekSubmitBtn"),
+  cancelWeekEditBtn: document.getElementById("cancelWeekEditBtn"),
+  printWeekCompletedBtn: document.getElementById("printWeekCompletedBtn"),
+  printWeekPlanBtn: document.getElementById("printWeekPlanBtn"),
+  weekTasksBody: document.getElementById("weekTasksBody"),
+
+  calcSummary: document.getElementById("calcSummary"),
+  calcEmployeeFilter: document.getElementById("calcEmployeeFilter"),
+  calcEmployeeFreeList: document.getElementById("calcEmployeeFreeList"),
+  calcTaskTypeBreakdown: document.getElementById("calcTaskTypeBreakdown"),
+  calcStatus: document.getElementById("calcStatus"),
+
+  calcWeekSummary: document.getElementById("calcWeekSummary"),
+  calcWeekStatus: document.getElementById("calcWeekStatus"),
+};
 
 init();
 
 function init() {
-  fillActivityFilter();
-  renderDictionary();
-  renderReport();
-
-  operationsFile.addEventListener("change", onFileUploaded);
-  loadSampleBtn.addEventListener("click", () => loadOperationsFromText(SAMPLE_OPERATIONS, "пример"));
-  downloadTemplateBtn.addEventListener("click", downloadTemplateCsv);
-  dateFromInput.addEventListener("change", renderReport);
-  dateToInput.addEventListener("change", renderReport);
-  activityFilter.addEventListener("change", renderReport);
-  resetFiltersBtn.addEventListener("click", resetFilters);
-  downloadReportCsvBtn.addEventListener("click", downloadReportCsv);
-  dictionarySearch.addEventListener("input", renderDictionary);
+  syncStaffCountWithEmployees();
+  refs.selectedDate.value = todayIso();
+  renderHourOptions();
+  bindEvents();
+  renderAll();
+  registerServiceWorker();
 }
 
-function parseArticleRows(raw) {
-  return raw
-    .trim()
-    .split("\n")
-    .map((line, idx) => {
-      const [articleNoRaw, name, group, activity, description, source, comment] = line
-        .split("|")
-        .map((cell) => cell.trim());
+function bindEvents() {
+  refs.saveSettingsBtn.addEventListener("click", onSaveSettings);
 
+  refs.employeeForm.addEventListener("submit", onAddEmployee);
+  refs.employeesBody.addEventListener("click", onEmployeesTableClick);
+
+  refs.taskTypeForm.addEventListener("submit", onAddTaskType);
+  refs.taskTypesBody.addEventListener("click", onTaskTypesTableClick);
+
+  refs.selectedDate.addEventListener("change", onSelectedDateChange);
+  refs.dayEmployeeFilter.addEventListener("change", renderDayTasks);
+  refs.dayTaskTypeFilter.addEventListener("change", renderDayTasks);
+  refs.calcEmployeeFilter.addEventListener("change", renderDayCalc);
+
+  refs.dayTaskForm.addEventListener("submit", onAddDayTask);
+  refs.cancelDayEditBtn.addEventListener("click", onCancelDayEdit);
+  refs.dayTasksBody.addEventListener("click", onDayTasksTableClick);
+  refs.clearCompletedDayBtn.addEventListener("click", onClearCompletedDayTasks);
+  refs.printEmployeePlanBtn.addEventListener("click", onPrintEmployeePlan);
+
+  refs.palletForm.addEventListener("submit", onSavePalletForDay);
+  refs.exportPalletWeekBtn.addEventListener("click", () => onExportPallets("week"));
+  refs.exportPalletMonthBtn.addEventListener("click", () => onExportPallets("month"));
+  refs.exportPalletQuarterBtn.addEventListener("click", () => onExportPallets("quarter"));
+  refs.exportPalletYearBtn.addEventListener("click", () => onExportPallets("year"));
+
+  refs.weekTaskForm.addEventListener("submit", onAddWeekTask);
+  refs.cancelWeekEditBtn.addEventListener("click", onCancelWeekEdit);
+  refs.weekTasksBody.addEventListener("click", onWeekTasksTableClick);
+  refs.printWeekCompletedBtn.addEventListener("click", onPrintWeekCompletedTasks);
+  refs.printWeekPlanBtn.addEventListener("click", onPrintWeekPlan);
+}
+
+function onSelectedDateChange() {
+  renderDayAndCalc();
+  renderPalletSection();
+}
+
+function onSaveSettings() {
+  state.settings.hoursPerDay = Math.max(0, toNumber(refs.hoursPerDay.value));
+  persist();
+  renderDayAndCalc();
+  renderWeekCalc();
+}
+
+function onAddEmployee(event) {
+  event.preventDefault();
+  const name = refs.employeeName.value.trim();
+  if (!name) {
+    return;
+  }
+
+  state.employees.push({
+    id: id(),
+    name,
+  });
+
+  syncStaffCountWithEmployees();
+  refs.employeeForm.reset();
+  persist();
+  renderAll();
+}
+
+function onEmployeesTableClick(event) {
+  const button = event.target.closest("button[data-id]");
+  if (!button) {
+    return;
+  }
+
+  const employeeId = button.dataset.id;
+  state.employees = state.employees.filter((employee) => employee.id !== employeeId);
+  state.dayTasks = state.dayTasks.filter((task) => task.employeeId !== employeeId);
+  syncStaffCountWithEmployees();
+  persist();
+  renderAll();
+}
+
+function onAddTaskType(event) {
+  event.preventDefault();
+  const taskTypeName = refs.taskTypeName.value.trim();
+  if (!taskTypeName) {
+    return;
+  }
+
+  const exists = state.taskTypes.some((type) => type.toLowerCase() === taskTypeName.toLowerCase());
+  if (exists) {
+    window.alert("Такой тип задачи уже есть.");
+    return;
+  }
+
+  state.taskTypes.push(taskTypeName);
+  refs.taskTypeForm.reset();
+  persist();
+  renderTaskTypes();
+  renderTaskTypeOptions();
+  renderDayAndCalc();
+  renderWeekCalc();
+}
+
+function onTaskTypesTableClick(event) {
+  const button = event.target.closest("button[data-index]");
+  if (!button) {
+    return;
+  }
+
+  const index = Number(button.dataset.index);
+  const taskTypeName = state.taskTypes[index];
+  if (!taskTypeName) {
+    return;
+  }
+
+  if (isTaskTypeInUse(taskTypeName)) {
+    window.alert("Нельзя удалить тип: он уже используется в задачах.");
+    return;
+  }
+
+  state.taskTypes = state.taskTypes.filter((type) => type !== taskTypeName);
+  persist();
+  renderTaskTypes();
+  renderTaskTypeOptions();
+  renderDayAndCalc();
+  renderWeekCalc();
+}
+
+function onAddDayTask(event) {
+  event.preventDefault();
+
+  const employeeId = refs.dayEmployee.value;
+  const taskType = refs.dayTaskType.value;
+  if (!employeeId || !taskType) {
+    return;
+  }
+
+  if (editState.dayTaskId) {
+    state.dayTasks = state.dayTasks.map((task) => (
+      task.id === editState.dayTaskId
+        ? {
+          ...task,
+          date: refs.selectedDate.value,
+          employeeId,
+          taskType,
+          hours: Math.max(0, toNumber(refs.dayHours.value)),
+          orderComment: refs.dayOrder.value.trim(),
+        }
+        : task
+    ));
+  } else {
+    state.dayTasks.push({
+      id: id(),
+      date: refs.selectedDate.value,
+      employeeId,
+      taskType,
+      hours: Math.max(0, toNumber(refs.dayHours.value)),
+      orderComment: refs.dayOrder.value.trim(),
+      completed: false,
+    });
+  }
+
+  resetDayTaskEditor();
+
+  persist();
+  renderDayAndCalc();
+}
+
+function onDayTasksTableClick(event) {
+  const button = event.target.closest("button[data-id][data-action]");
+  if (!button) {
+    return;
+  }
+
+  const taskId = button.dataset.id;
+  const action = button.dataset.action;
+  if (action === "delete") {
+    const task = state.dayTasks.find((item) => item.id === taskId);
+    if (!task) {
+      return;
+    }
+
+    if (!task.completed) {
+      state.dayTasks = state.dayTasks.map((item) => (
+        item.id === taskId
+          ? { ...item, completed: true }
+          : item
+      ));
+    } else {
+      state.dayTasks = state.dayTasks.filter((item) => item.id !== taskId);
+    }
+  } else if (action === "toggle-complete") {
+    state.dayTasks = state.dayTasks.map((task) => {
+      if (task.id !== taskId) {
+        return task;
+      }
       return {
-        id: idx + 1,
-        articleNoRaw,
-        name,
-        group,
-        activity,
-        description,
-        source,
-        comment,
-        status: resolveArticleStatus(articleNoRaw, comment),
+        ...task,
+        completed: !task.completed,
       };
     });
+  } else if (action === "edit") {
+    startDayTaskEdit(taskId);
+    return;
+  }
+
+  if (editState.dayTaskId === taskId && action !== "edit") {
+    resetDayTaskEditor();
+  }
+
+  persist();
+  renderDayAndCalc();
 }
 
-function resolveArticleStatus(articleNoRaw, comment) {
-  const raw = normalizeText(articleNoRaw);
-  const cmt = normalizeText(comment);
-
-  if (raw.startsWith("удалить")) return "DELETE";
-  if (raw.startsWith("поменять")) return "RENAME";
-  if (cmt.includes("не актуальный") || cmt.includes("неактуальный")) return "INACTIVE";
-  return "ACTIVE";
+function onCancelDayEdit() {
+  resetDayTaskEditor();
 }
 
-function buildArticleMap(items) {
+function onClearCompletedDayTasks() {
+  const selectedDate = refs.selectedDate.value;
+  const completedTasks = state.dayTasks.filter((task) => task.date === selectedDate && task.completed);
+  const completedCount = completedTasks.length;
+  if (completedCount === 0) {
+    window.alert("На выбранную дату нет выполненных задач.");
+    return;
+  }
+
+  const shouldPrint = window.confirm("Распечатать итоги дня?");
+  if (shouldPrint) {
+    printCompletedDayReport(selectedDate, completedTasks);
+  }
+
+  state.dayTasks = state.dayTasks.filter((task) => !(task.date === selectedDate && task.completed));
+  persist();
+  renderDayAndCalc();
+}
+
+function onAddWeekTask(event) {
+  event.preventDefault();
+
+  const taskType = refs.weekTaskType.value;
+  if (!taskType) {
+    return;
+  }
+
+  if (editState.weekTaskId) {
+    state.weekTasks = state.weekTasks.map((task) => (
+      task.id === editState.weekTaskId
+        ? {
+          ...task,
+          taskType,
+          hours: Math.max(0, toNumber(refs.weekHours.value)),
+          comment: refs.weekComment.value.trim(),
+        }
+        : task
+    ));
+  } else {
+    state.weekTasks.push({
+      id: id(),
+      taskType,
+      hours: Math.max(0, toNumber(refs.weekHours.value)),
+      comment: refs.weekComment.value.trim(),
+      completed: false,
+    });
+  }
+
+  resetWeekTaskEditor();
+
+  persist();
+  renderWeekTasks();
+  renderWeekCalc();
+}
+
+function onWeekTasksTableClick(event) {
+  const button = event.target.closest("button[data-id][data-action]");
+  if (!button) {
+    return;
+  }
+
+  const taskId = button.dataset.id;
+  const action = button.dataset.action;
+  if (action === "delete") {
+    const task = state.weekTasks.find((item) => item.id === taskId);
+    if (!task) {
+      return;
+    }
+
+    if (!task.completed) {
+      state.weekTasks = state.weekTasks.map((item) => (
+        item.id === taskId
+          ? { ...item, completed: true }
+          : item
+      ));
+    } else {
+      state.weekTasks = state.weekTasks.filter((item) => item.id !== taskId);
+    }
+  } else if (action === "toggle-complete") {
+    state.weekTasks = state.weekTasks.map((task) => {
+      if (task.id !== taskId) {
+        return task;
+      }
+      return {
+        ...task,
+        completed: !task.completed,
+      };
+    });
+  } else if (action === "edit") {
+    startWeekTaskEdit(taskId);
+    return;
+  }
+
+  if (editState.weekTaskId === taskId && action !== "edit") {
+    resetWeekTaskEditor();
+  }
+
+  persist();
+  renderWeekTasks();
+  renderWeekCalc();
+}
+
+function onCancelWeekEdit() {
+  resetWeekTaskEditor();
+}
+
+function startDayTaskEdit(taskId) {
+  const task = state.dayTasks.find((item) => item.id === taskId);
+  if (!task) {
+    return;
+  }
+
+  if (refs.selectedDate.value !== task.date) {
+    refs.selectedDate.value = task.date;
+    renderDayAndCalc();
+    renderPalletSection();
+  }
+
+  editState.dayTaskId = task.id;
+  refs.dayEmployee.value = task.employeeId || "";
+  refs.dayTaskType.value = getTaskLabel(task);
+  setSelectValueWithFallback(refs.dayHours, task.hours, `${fmt(task.hours)} ч`);
+  refs.dayOrder.value = task.orderComment || "";
+  refs.daySubmitBtn.textContent = "Сохранить";
+  refs.cancelDayEditBtn.hidden = false;
+}
+
+function startWeekTaskEdit(taskId) {
+  const task = state.weekTasks.find((item) => item.id === taskId);
+  if (!task) {
+    return;
+  }
+
+  editState.weekTaskId = task.id;
+  refs.weekTaskType.value = getTaskLabel(task);
+  refs.weekHours.value = String(task.hours);
+  refs.weekComment.value = task.comment || "";
+  refs.weekSubmitBtn.textContent = "Сохранить";
+  refs.cancelWeekEditBtn.hidden = false;
+}
+
+function resetDayTaskEditor() {
+  editState.dayTaskId = null;
+  refs.dayTaskForm.reset();
+  renderEmployeeOptions();
+  renderTaskTypeOptions();
+  refs.dayHours.value = "1";
+  refs.daySubmitBtn.textContent = "Добавить в день";
+  refs.cancelDayEditBtn.hidden = true;
+}
+
+function resetWeekTaskEditor() {
+  editState.weekTaskId = null;
+  refs.weekTaskForm.reset();
+  renderTaskTypeOptions();
+  refs.weekHours.value = "";
+  refs.weekSubmitBtn.textContent = "Добавить в неделю";
+  refs.cancelWeekEditBtn.hidden = true;
+}
+
+function setSelectValueWithFallback(select, value, label) {
+  const stringValue = String(value);
+  Array.from(select.options)
+    .filter((option) => option.dataset.custom === "1")
+    .forEach((option) => option.remove());
+
+  if (!Array.from(select.options).some((option) => option.value === stringValue)) {
+    const customOption = document.createElement("option");
+    customOption.value = stringValue;
+    customOption.textContent = label;
+    customOption.dataset.custom = "1";
+    select.append(customOption);
+  }
+
+  select.value = stringValue;
+}
+
+function onPrintWeekPlan() {
+  if (state.weekTasks.length === 0) {
+    window.alert("В недельном плане пока нет задач.");
+    return;
+  }
+
+  const rows = state.weekTasks
+    .map((task) => `
+      <tr>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td>${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.comment || "-")}</td>
+        <td>${task.completed ? "Выполнено" : "В работе"}</td>
+      </tr>
+    `)
+    .join("");
+
+  const totalHours = sumHours(state.weekTasks);
+  const completedHours = sumHours(state.weekTasks.filter((task) => task.completed));
+  const activeHours = sumHours(state.weekTasks.filter((task) => !task.completed));
+
+  const win = window.open("", "_blank", "width=1080,height=760");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>План на неделю</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 10px; }
+          .totals { margin: 0 0 12px; color: #444; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+        </style>
+      </head>
+      <body>
+        <h1>План на неделю</h1>
+        <p class="totals">Всего часов: ${fmt(totalHours)} | В работе: ${fmt(activeHours)} | Выполнено: ${fmt(completedHours)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Задача</th>
+              <th>Часы</th>
+              <th>Комментарий</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function onPrintWeekCompletedTasks() {
+  const completedTasks = state.weekTasks.filter((task) => task.completed);
+  if (completedTasks.length === 0) {
+    window.alert("Закрытых задач за неделю пока нет.");
+    return;
+  }
+
+  const rows = completedTasks
+    .map((task) => `
+      <tr>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td>${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.comment || "-")}</td>
+      </tr>
+    `)
+    .join("");
+
+  const totalHours = sumHours(completedTasks);
+
+  const win = window.open("", "_blank", "width=980,height=740");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>Закрытые задачи недели</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 10px; }
+          p { margin: 0 0 12px; color: #444; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+          .total { font-weight: 700; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>Закрытые задачи за неделю</h1>
+        <p>Количество задач: ${completedTasks.length}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Задача</th>
+              <th>Часы</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total">Итого выполнено часов: ${fmt(totalHours)}</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function onPrintEmployeePlan() {
+  const selectedDate = refs.selectedDate.value;
+  const employeeId = refs.dayEmployeeFilter.value;
+  const taskTypeFilter = refs.dayTaskTypeFilter.value;
+  const dayTasksForPrint = state.dayTasks
+    .filter((task) => task.date === selectedDate && !task.completed)
+    .filter((task) => (taskTypeFilter === "all" ? true : getTaskLabel(task) === taskTypeFilter));
+
+  if (employeeId === "all") {
+    if (dayTasksForPrint.length === 0) {
+      window.alert("На выбранную дату нет задач для печати.");
+      return;
+    }
+    printTeamDayPlan(selectedDate, dayTasksForPrint);
+    return;
+  }
+
+  const employee = getEmployeeById(employeeId);
+  if (!employee) {
+    window.alert("Сотрудник не найден.");
+    return;
+  }
+
+  const rows = dayTasksForPrint
+    .filter((task) => task.employeeId === employeeId)
+    .map((task) => `
+      <tr>
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td>${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.orderComment || "-")}</td>
+      </tr>
+    `)
+    .join("");
+
+  const win = window.open("", "_blank", "width=980,height=740");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>План: ${escapeHtml(employee.name)}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 6px; }
+          p { margin: 0 0 14px; color: #555; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+        </style>
+      </head>
+      <body>
+        <h1>План сотрудника: ${escapeHtml(employee.name)}</h1>
+        <p>Дата: ${escapeHtml(selectedDate)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Задача</th>
+              <th>Планируемое время</th>
+              <th>Номер / комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows || "<tr><td colspan='3'>Нет задач на выбранную дату</td></tr>"}</tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function onSavePalletForDay(event) {
+  event.preventDefault();
+
+  const selectedDate = refs.selectedDate.value || todayIso();
+  const inbound = parsePalletInput(refs.palletInbound.value);
+  const outbound = parsePalletInput(refs.palletOutbound.value);
+  if (inbound === null || outbound === null) {
+    refs.palletStatus.className = "status warn";
+    refs.palletStatus.textContent = "Введите корректные неотрицательные числа паллет.";
+    return;
+  }
+
+  const existing = state.palletEntries.find((entry) => entry.date === selectedDate);
+  if (existing) {
+    existing.inbound = inbound;
+    existing.outbound = outbound;
+  } else {
+    state.palletEntries.push({
+      date: selectedDate,
+      inbound,
+      outbound,
+    });
+  }
+
+  persist();
+  renderPalletSection();
+
+  refs.palletStatus.className = "status ok";
+  refs.palletStatus.textContent = `Сохранено за ${formatDateRu(selectedDate)}.`;
+}
+
+function onExportPallets(periodKey) {
+  const selectedDate = refs.selectedDate.value || todayIso();
+  const period = getPalletPeriodConfig(periodKey, selectedDate);
+  const rows = getPalletDailyRows(period.start, period.end, { weekdaysOnly: period.weekdaysOnly });
+  const totals = sumPalletRows(rows);
+
+  const csvRows = [
+    ["Период", period.label],
+    ["Дата отчета", formatDateRu(selectedDate)],
+    [],
+    ["Дата", "Пришло паллет", "Отгружено паллет", "Итог"],
+    ...rows.map((row) => [
+      formatDateRu(row.date),
+      String(row.inbound),
+      String(row.outbound),
+      String(row.inbound - row.outbound),
+    ]),
+    ["ИТОГО", String(totals.inbound), String(totals.outbound), String(totals.inbound - totals.outbound)],
+  ];
+
+  downloadCsv(
+    `pallets-${periodKey}-${selectedDate}.csv`,
+    csvRows,
+  );
+}
+
+function renderPalletSection() {
+  const selectedDate = refs.selectedDate.value || todayIso();
+  const entry = state.palletEntries.find((item) => item.date === selectedDate);
+  refs.palletDateLabel.textContent = formatDateRu(selectedDate);
+  refs.palletInbound.value = entry ? String(entry.inbound) : "";
+  refs.palletOutbound.value = entry ? String(entry.outbound) : "";
+
+  refs.palletStatus.className = "pallet-note";
+  refs.palletStatus.textContent = entry
+    ? `Для этой даты сохранено: приход ${fmt(entry.inbound)} / отгрузка ${fmt(entry.outbound)}.`
+    : "Для этой даты запись по паллетам пока не сохранена.";
+
+  const weekPeriod = getPalletPeriodConfig("week", selectedDate);
+  const monthPeriod = getPalletPeriodConfig("month", selectedDate);
+  const quarterPeriod = getPalletPeriodConfig("quarter", selectedDate);
+  const yearPeriod = getPalletPeriodConfig("year", selectedDate);
+
+  const summaryRows = [
+    summarizePalletPeriod(weekPeriod),
+    summarizePalletPeriod(monthPeriod),
+    summarizePalletPeriod(quarterPeriod),
+    summarizePalletPeriod(yearPeriod),
+  ];
+
+  refs.palletSummaryBody.innerHTML = summaryRows
+    .map((item) => `
+      <tr>
+        <td>${escapeHtml(item.label)}</td>
+        <td class="num">${fmt(item.inbound)}</td>
+        <td class="num">${fmt(item.outbound)}</td>
+        <td class="num">${fmt(item.balance)}</td>
+      </tr>
+    `)
+    .join("");
+}
+
+function printTeamDayPlan(selectedDate, dayTasks) {
+  const rows = dayTasks
+    .slice()
+    .sort((a, b) => {
+      const aEmployee = getEmployeeById(a.employeeId)?.name || "";
+      const bEmployee = getEmployeeById(b.employeeId)?.name || "";
+      return aEmployee.localeCompare(bEmployee, "ru") || getTaskLabel(a).localeCompare(getTaskLabel(b), "ru");
+    })
+    .map((task) => {
+      const employee = getEmployeeById(task.employeeId);
+      return `
+        <tr>
+          <td>${escapeHtml(employee?.name || "-")}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
+          <td>${fmt(task.hours)}</td>
+          <td>${escapeHtml(task.orderComment || "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const totalHours = sumHours(dayTasks);
+  const win = window.open("", "_blank", "width=1100,height=760");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>Общий план смены</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 6px; }
+          p { margin: 0 0 12px; color: #555; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+          .total { margin-top: 10px; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        <h1>Общий план смены</h1>
+        <p>Дата: ${escapeHtml(selectedDate)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Сотрудник</th>
+              <th>Задача</th>
+              <th>Планируемое время</th>
+              <th>Номер / комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total">Итого по смене: ${fmt(totalHours)} ч.</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function renderAll() {
+  renderSettings();
+  renderEmployees();
+  renderTaskTypes();
+  renderEmployeeOptions();
+  renderTaskTypeOptions();
+  renderDayAndCalc();
+  renderPalletSection();
+  renderWeekTasks();
+  renderWeekCalc();
+}
+
+function renderSettings() {
+  syncStaffCountWithEmployees();
+  refs.staffCount.value = state.settings.staffCount;
+  refs.hoursPerDay.value = state.settings.hoursPerDay;
+}
+
+function renderEmployees() {
+  refs.employeesBody.innerHTML = state.employees
+    .map(
+      (employee) => `
+      <tr>
+        <td>${escapeHtml(employee.name)}</td>
+        <td>
+          <button class="btn danger" data-id="${employee.id}" type="button">Удалить</button>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
+}
+
+function renderTaskTypes() {
+  refs.taskTypesBody.innerHTML = state.taskTypes
+    .map(
+      (taskType, index) => `
+      <tr>
+        <td>${escapeHtml(taskType)}</td>
+        <td>
+          <button class="btn danger" data-index="${index}" type="button">Удалить</button>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
+}
+
+function renderEmployeeOptions() {
+  const options = state.employees
+    .map((employee) => `<option value="${employee.id}">${escapeHtml(employee.name)}</option>`)
+    .join("");
+
+  const currentFilter = refs.dayEmployeeFilter.value || "all";
+  const currentCalcFilter = refs.calcEmployeeFilter.value || "all";
+
+  refs.dayEmployee.innerHTML = `<option value="" selected>Выберите сотрудника</option>${options}`;
+  refs.dayEmployeeFilter.innerHTML = `<option value="all">все</option>${options}`;
+  refs.calcEmployeeFilter.innerHTML = `<option value="all">все сотрудники</option>${options}`;
+  refs.dayEmployee.value = "";
+
+  refs.dayEmployeeFilter.value = state.employees.some((employee) => employee.id === currentFilter)
+    ? currentFilter
+    : "all";
+
+  refs.calcEmployeeFilter.value = state.employees.some((employee) => employee.id === currentCalcFilter)
+    ? currentCalcFilter
+    : "all";
+}
+
+function renderTaskTypeOptions() {
+  const currentDayTaskType = refs.dayTaskType.value;
+  const currentWeekTaskType = refs.weekTaskType.value;
+  const currentTypeFilter = refs.dayTaskTypeFilter.value || "all";
+
+  if (state.taskTypes.length === 0) {
+    const emptyOption = "<option value=\"\">Сначала добавьте тип задачи</option>";
+    refs.dayTaskType.innerHTML = emptyOption;
+    refs.weekTaskType.innerHTML = emptyOption;
+    refs.dayTaskTypeFilter.innerHTML = "<option value=\"all\">все</option>";
+    return;
+  }
+
+  const options = state.taskTypes
+    .map((taskType) => `<option value="${escapeHtml(taskType)}">${escapeHtml(taskType)}</option>`)
+    .join("");
+
+  refs.dayTaskType.innerHTML = options;
+  refs.weekTaskType.innerHTML = options;
+  refs.dayTaskTypeFilter.innerHTML = `<option value="all">все</option>${options}`;
+
+  if (state.taskTypes.includes(currentDayTaskType)) {
+    refs.dayTaskType.value = currentDayTaskType;
+  }
+
+  if (state.taskTypes.includes(currentWeekTaskType)) {
+    refs.weekTaskType.value = currentWeekTaskType;
+  }
+
+  refs.dayTaskTypeFilter.value = state.taskTypes.includes(currentTypeFilter) ? currentTypeFilter : "all";
+}
+
+function renderHourOptions() {
+  const dayCurrent = refs.dayHours.value;
+  const options = HOUR_OPTIONS
+    .map((option) => `<option value="${option.value}">${option.label}</option>`)
+    .join("");
+
+  refs.dayHours.innerHTML = options;
+
+  refs.dayHours.value = HOUR_OPTIONS.some((option) => option.value === dayCurrent)
+    ? dayCurrent
+    : "1";
+}
+
+function renderDayAndCalc() {
+  renderDayTasks();
+  renderDayCalc();
+}
+
+function renderDayTasks() {
+  const selectedDate = refs.selectedDate.value;
+  const employeeFilter = refs.dayEmployeeFilter.value;
+  const taskTypeFilter = refs.dayTaskTypeFilter.value;
+
+  refs.printEmployeePlanBtn.textContent = employeeFilter === "all"
+    ? "Печать общего плана"
+    : "Печать плана сотрудника";
+
+  const filteredTasks = state.dayTasks
+    .filter((task) => task.date === selectedDate)
+    .filter((task) => (employeeFilter === "all" ? true : task.employeeId === employeeFilter))
+    .filter((task) => (taskTypeFilter === "all" ? true : getTaskLabel(task) === taskTypeFilter));
+
+  refs.dayTasksBody.innerHTML = filteredTasks
+    .sort((a, b) => Number(a.completed) - Number(b.completed))
+    .map((task) => {
+      const employee = getEmployeeById(task.employeeId);
+      return `
+        <tr class="${task.completed ? "completed-row" : ""}">
+          <td>${escapeHtml(employee?.name || "-")}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
+          <td class="num">${fmt(task.hours)}</td>
+          <td>${escapeHtml(task.orderComment || "-")}</td>
+          <td>
+            <button class="btn secondary" data-id="${task.id}" data-action="edit" type="button">Редактировать</button>
+            <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
+            <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">${task.completed ? "Удалить совсем" : "Завершить"}</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderWeekTasks() {
+  refs.weekTasksBody.innerHTML = state.weekTasks
+    .sort((a, b) => Number(a.completed) - Number(b.completed))
+    .map(
+      (task) => `
+      <tr class="${task.completed ? "completed-row" : ""}">
+        <td>${escapeHtml(getTaskLabel(task))}</td>
+        <td class="num">${fmt(task.hours)}</td>
+        <td>${escapeHtml(task.comment || "-")}</td>
+        <td>
+          <button class="btn secondary" data-id="${task.id}" data-action="edit" type="button">Редактировать</button>
+          <button class="btn ${task.completed ? "muted" : "done"}" data-id="${task.id}" data-action="toggle-complete" type="button">${task.completed ? "Вернуть" : "Готово"}</button>
+          <button class="btn danger" data-id="${task.id}" data-action="delete" type="button">${task.completed ? "Удалить совсем" : "Завершить"}</button>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
+}
+
+function renderDayCalc() {
+  const selectedDate = refs.selectedDate.value;
+  const dayTasks = state.dayTasks.filter((task) => task.date === selectedDate && !task.completed);
+  const selectedEmployeeId = refs.calcEmployeeFilter.value;
+
+  renderEmployeeFreeHours(dayTasks);
+
+  if (selectedEmployeeId && selectedEmployeeId !== "all") {
+    const employee = getEmployeeById(selectedEmployeeId);
+    const employeeName = employee?.name || "Сотрудник";
+    const employeeTasks = dayTasks.filter((task) => task.employeeId === selectedEmployeeId);
+    const availableHours = state.settings.hoursPerDay;
+    const plannedHours = sumHours(employeeTasks);
+    const diff = availableHours - plannedHours;
+
+    refs.calcSummary.innerHTML = [
+      summaryItem("Сотрудник", escapeHtml(employeeName)),
+      summaryItem("Доступно часов", fmt(availableHours)),
+      summaryItem("Запланировано часов", fmt(plannedHours)),
+      summaryItem(diff >= 0 ? "Остаток часов" : "Перегрузка", fmt(Math.abs(diff))),
+    ].join("");
+
+    renderDailyBreakdown(employeeTasks, `Загрузка по типам задач: ${employeeName}`);
+
+    if (plannedHours === availableHours) {
+      refs.calcStatus.className = "status ok";
+      refs.calcStatus.textContent = `Сотрудник ${employeeName}: полностью запланирован по часам.`;
+      return;
+    }
+
+    refs.calcStatus.className = "status warn";
+    refs.calcStatus.textContent = plannedHours < availableHours
+      ? `Сотрудник ${employeeName}: недозагрузка ${fmt(availableHours - plannedHours)} ч.`
+      : `Сотрудник ${employeeName}: перегрузка ${fmt(plannedHours - availableHours)} ч.`;
+    return;
+  }
+
+  const availableHours = state.settings.staffCount * state.settings.hoursPerDay;
+  const plannedHours = sumHours(dayTasks);
+  const remainingHours = availableHours - plannedHours;
+
+  refs.calcSummary.innerHTML = [
+    summaryItem("Сотрудников в смене", fmt(state.settings.staffCount)),
+    summaryItem("Доступно часов", fmt(availableHours)),
+    summaryItem("Запланировано часов", fmt(plannedHours)),
+    summaryItem(remainingHours >= 0 ? "Остаток часов" : "Дефицит часов", fmt(Math.abs(remainingHours))),
+  ].join("");
+
+  renderDailyBreakdown(dayTasks);
+
+  if (plannedHours <= availableHours) {
+    refs.calcStatus.className = "status ok";
+    refs.calcStatus.textContent = "OK: доступных часов хватает на все задачи.";
+    return;
+  }
+
+  refs.calcStatus.className = "status warn";
+  refs.calcStatus.textContent = `Не хватает часов: ${fmt(plannedHours - availableHours)}.`;
+}
+
+function renderEmployeeFreeHours(dayTasks) {
+  if (state.employees.length === 0) {
+    refs.calcEmployeeFreeList.innerHTML = "<div class=\"breakdown-empty\">Сотрудников в списке нет.</div>";
+    return;
+  }
+
+  const rows = state.employees
+    .map((employee) => {
+      const plannedHours = sumHours(dayTasks.filter((task) => task.employeeId === employee.id));
+      const freeHoursRaw = state.settings.hoursPerDay - plannedHours;
+      const freeHours = Math.abs(freeHoursRaw) < 0.0001 ? 0 : freeHoursRaw;
+      const freeLabel = freeHours >= 0 ? fmt(freeHours) : `-${fmt(Math.abs(freeHours))}`;
+      const freeTitle = freeHours < 0
+        ? "Перегрузка"
+        : (freeHours === 0 ? "Полностью запланирован" : "Свободно");
+      const rowClass = freeHours < 0 ? "free-overload" : "";
+
+      return `
+        <tr class="${rowClass}">
+          <td>${escapeHtml(employee.name)}</td>
+          <td class="num">${fmt(plannedHours)}</td>
+          <td class="num">${freeLabel}</td>
+          <td>${freeTitle}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  refs.calcEmployeeFreeList.innerHTML = `
+    <h3>Свободные часы по сотрудникам</h3>
+    <table class="breakdown-table employee-free-table">
+      <thead>
+        <tr>
+          <th>Сотрудник</th>
+          <th class="num-head">Запланировано</th>
+          <th class="num-head">Свободно</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderDailyBreakdown(dayTasks, title = "Загрузка по типам задач") {
+  const grouped = groupHoursByTaskType(dayTasks);
+
+  if (grouped.length === 0) {
+    refs.calcTaskTypeBreakdown.innerHTML = "<div class=\"breakdown-empty\">На выбранную дату задач нет.</div>";
+    return;
+  }
+
+  const rows = grouped
+    .map(
+      (item) => `
+      <tr>
+        <td>${escapeHtml(item.taskType)}</td>
+        <td class="num">${fmt(item.hours)}</td>
+      </tr>
+    `,
+    )
+    .join("");
+
+  refs.calcTaskTypeBreakdown.innerHTML = `
+    <h3>${escapeHtml(title)}</h3>
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th>Тип задачи</th>
+          <th>Планируемое время</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderWeekCalc() {
+  const activeWeekTasks = state.weekTasks.filter((task) => !task.completed);
+  const plannedWeekHours = sumHours(activeWeekTasks);
+  const availableWeekHours = state.settings.staffCount * state.settings.hoursPerDay * WORK_DAYS_PER_WEEK;
+  const remainingWeekHours = availableWeekHours - plannedWeekHours;
+
+  refs.calcWeekSummary.innerHTML = [
+    summaryItem("Рабочих дней в неделе", fmt(WORK_DAYS_PER_WEEK)),
+    summaryItem("Доступно часов за неделю", fmt(availableWeekHours)),
+    summaryItem("Запланировано часов за неделю", fmt(plannedWeekHours)),
+    summaryItem(remainingWeekHours >= 0 ? "Остаток часов" : "Дефицит часов", fmt(Math.abs(remainingWeekHours))),
+  ].join("");
+
+  if (plannedWeekHours <= availableWeekHours) {
+    refs.calcWeekStatus.className = "status ok";
+    refs.calcWeekStatus.textContent = "OK: недельная загрузка покрыта.";
+    return;
+  }
+
+  refs.calcWeekStatus.className = "status warn";
+  refs.calcWeekStatus.textContent = `Не хватает часов за неделю: ${fmt(plannedWeekHours - availableWeekHours)}.`;
+}
+
+function groupHoursByTaskType(tasks) {
   const map = new Map();
 
-  items.forEach((row) => {
-    map.set(normalizeText(row.name), row);
+  for (const task of tasks) {
+    const taskType = getTaskLabel(task);
+    map.set(taskType, (map.get(taskType) || 0) + toNumber(task.hours));
+  }
 
-    const renameTargetPrefix = "поменять на ";
-    const noRaw = normalizeText(row.articleNoRaw);
-    if (noRaw.startsWith(renameTargetPrefix)) {
-      const renamedTo = row.articleNoRaw.slice(renameTargetPrefix.length).trim();
-      if (renamedTo) {
-        map.set(normalizeText(renamedTo), {
-          ...row,
-          name: renamedTo,
-          status: "ACTIVE",
-        });
-      }
-    }
-  });
-
-  return map;
+  return Array.from(map.entries())
+    .map(([taskType, hours]) => ({ taskType, hours }))
+    .sort((a, b) => b.hours - a.hours);
 }
 
-function fillActivityFilter() {
-  const activities = [...new Set(activeArticleRows.map((row) => row.activity))].sort((a, b) =>
-    a.localeCompare(b, "ru")
-  );
-
-  activities.forEach((activity) => {
-    const option = document.createElement("option");
-    option.value = activity;
-    option.textContent = activity;
-    activityFilter.append(option);
-  });
-
-  const unknown = document.createElement("option");
-  unknown.value = "Не определено";
-  unknown.textContent = "Не определено";
-  activityFilter.append(unknown);
+function sumHours(tasks) {
+  return tasks.reduce((sum, task) => sum + toNumber(task.hours), 0);
 }
 
-function onFileUploaded(event) {
-  const [file] = event.target.files || [];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    const text = String(reader.result || "");
-    loadOperationsFromText(text, file.name);
-  };
-  reader.onerror = () => {
-    fileStatus.textContent = "Ошибка чтения файла. Проверьте CSV и повторите.";
-  };
-
-  reader.readAsText(file, "utf-8");
+function getEmployeeById(employeeId) {
+  return state.employees.find((employee) => employee.id === employeeId);
 }
 
-function loadOperationsFromText(csvText, sourceName) {
+function summaryItem(label, value) {
+  return `<div class="calc-item"><strong>${label}</strong>${value}</div>`;
+}
+
+function getTaskLabel(task) {
+  return task.taskType || task.taskName || "";
+}
+
+function isTaskTypeInUse(taskTypeName) {
+  const usedInDay = state.dayTasks.some((task) => getTaskLabel(task) === taskTypeName);
+  const usedInWeek = state.weekTasks.some((task) => getTaskLabel(task) === taskTypeName);
+  return usedInDay || usedInWeek;
+}
+
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    return structuredClone(defaultState);
+  }
+
   try {
-    const parsed = parseOperationsCsv(csvText);
-    state.operations = parsed;
+    const parsed = JSON.parse(raw);
 
-    const dates = parsed
-      .map((row) => row.dateObj)
-      .filter(Boolean)
-      .sort((a, b) => a.getTime() - b.getTime());
+    const hasEmployeesArray = Array.isArray(parsed?.employees);
+    const parsedEmployees = hasEmployeesArray
+      ? parsed.employees
+          .map((employee) => ({
+            id: employee?.id || id(),
+            name: String(employee?.name || "").trim(),
+          }))
+          .filter((employee) => employee.name)
+      : [];
+    const employees = hasEmployeesArray ? parsedEmployees : structuredClone(defaultState.employees);
 
-    if (dates.length > 0) {
-      dateFromInput.value = toDateInputValue(dates[0]);
-      dateToInput.value = toDateInputValue(dates[dates.length - 1]);
-    }
+    const rawSettings = parsed?.settings || {};
+    const legacyMen = toNumber(rawSettings.menCount);
+    const legacyWomen = toNumber(rawSettings.womenCount);
+    const legacyStaffCount = legacyMen + legacyWomen;
+    const staffCount = Math.max(
+      0,
+      Math.floor(
+        toNumber(rawSettings.staffCount) || legacyStaffCount || parsedEmployees.length || defaultState.settings.staffCount,
+      ),
+    );
 
-    fileStatus.textContent = `Загружено: ${sourceName}. Операций: ${parsed.length}.`;
-    renderReport();
-  } catch (error) {
-    state.operations = [];
-    renderReport();
-    fileStatus.textContent = `Ошибка: ${error.message}`;
+    const taskTypes = Array.isArray(parsed?.taskTypes) && parsed.taskTypes.length > 0
+      ? [...new Set(parsed.taskTypes.map((taskType) => String(taskType || "").trim()).filter(Boolean))]
+      : [...DEFAULT_TASK_TYPES];
+
+    const dayTasks = Array.isArray(parsed?.dayTasks)
+      ? parsed.dayTasks.map((task) => ({
+        id: task?.id || id(),
+        date: task?.date || todayIso(),
+        employeeId: task?.employeeId || "",
+        taskType: getTaskFromRaw(task),
+        hours: Math.max(0, toNumber(task?.hours)),
+        orderComment: String(task?.orderComment || ""),
+        completed: Boolean(task?.completed),
+      }))
+      : [];
+
+    const weekTasks = Array.isArray(parsed?.weekTasks)
+      ? parsed.weekTasks.map((task) => ({
+        id: task?.id || id(),
+        taskType: getTaskFromRaw(task),
+        hours: Math.max(0, toNumber(task?.hours)),
+        comment: String(task?.comment || ""),
+        completed: Boolean(task?.completed),
+      }))
+      : [];
+
+    const palletEntries = Array.isArray(parsed?.palletEntries)
+      ? Array.from(
+          parsed.palletEntries
+            .map((entry) => ({
+              date: String(entry?.date || "").trim(),
+              inbound: Math.max(0, Math.floor(toNumber(entry?.inbound))),
+              outbound: Math.max(0, Math.floor(toNumber(entry?.outbound))),
+            }))
+            .filter((entry) => isIsoDateString(entry.date))
+            .reduce((map, entry) => map.set(entry.date, entry), new Map())
+            .values(),
+        )
+      : [];
+
+    return {
+      settings: {
+        staffCount: employees.length > 0 ? employees.length : staffCount,
+        hoursPerDay: Math.max(0, toNumber(rawSettings.hoursPerDay ?? defaultState.settings.hoursPerDay)),
+      },
+      employees,
+      taskTypes,
+      dayTasks,
+      weekTasks,
+      palletEntries,
+    };
+  } catch {
+    return structuredClone(defaultState);
   }
 }
 
-function parseOperationsCsv(text) {
-  const cleanText = text.replace(/^\uFEFF/, "").trim();
-  if (!cleanText) throw new Error("CSV пустой.");
+function syncStaffCountWithEmployees() {
+  state.settings.staffCount = state.employees.length;
+}
 
-  const firstLine = cleanText.split("\n")[0] || "";
-  const delimiter = (firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length ? ";" : ",";
-
-  const rows = parseCsv(cleanText, delimiter);
-  if (rows.length < 2) throw new Error("В CSV нет данных.");
-
-  const headers = rows[0].map((header) => normalizeText(header));
-
-  const idxDate = findColumn(headers, ["дата", "date"]);
-  const idxArticle = findColumn(headers, ["статья ддс", "статья", "фонд", "article"]);
-  const idxAmount = findColumn(headers, ["сумма", "amount", "итого", "sum"]);
-  const idxType = findColumn(headers, ["группа", "вид операции", "операция", "тип"]);
-
-  if (idxDate === -1) throw new Error("Не найдена колонка 'Дата'.");
-  if (idxArticle === -1) throw new Error("Не найдена колонка 'Статья ДДС' или 'Фонд'.");
-  if (idxAmount === -1) throw new Error("Не найдена колонка 'Сумма'.");
-
-  return rows
-    .slice(1)
-    .map((cells, rowIdx) => {
-      const dateRaw = (cells[idxDate] || "").trim();
-      const articleRaw = (cells[idxArticle] || "").trim();
-      const amountRaw = (cells[idxAmount] || "").trim();
-      const typeRaw = idxType >= 0 ? (cells[idxType] || "").trim() : "";
-
-      const amountValue = parseAmount(amountRaw);
-      if (amountValue === null) return null;
-
-      const dateObj = parseFlexibleDate(dateRaw);
-      if (!dateObj) {
-        throw new Error(`Неверная дата в строке ${rowIdx + 2}: ${dateRaw}`);
-      }
-
-      const matched = findArticle(articleRaw);
-      const type = resolveOperationType(typeRaw, amountValue, matched?.group);
-
-      return {
-        dateRaw,
-        dateObj,
-        articleInput: articleRaw,
-        article: matched?.name || articleRaw,
-        activity: matched?.activity || "Не определено",
-        amount: Math.abs(amountValue),
-        direction: type,
-      };
+function printCompletedDayReport(selectedDate, completedTasks) {
+  const rows = completedTasks
+    .map((task) => {
+      const employee = getEmployeeById(task.employeeId);
+      return `
+        <tr>
+          <td>${escapeHtml(employee?.name || "-")}</td>
+          <td>${escapeHtml(getTaskLabel(task))}</td>
+          <td>${fmt(task.hours)}</td>
+          <td>${escapeHtml(task.orderComment || "-")}</td>
+        </tr>
+      `;
     })
-    .filter(Boolean);
+    .join("");
+
+  const totalHours = sumHours(completedTasks);
+
+  const win = window.open("", "_blank", "width=980,height=740");
+  if (!win) {
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="ru">
+      <head>
+        <meta charset="UTF-8">
+        <title>Итоги дня: ${escapeHtml(selectedDate)}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { margin-bottom: 6px; }
+          p { margin: 0 0 14px; color: #555; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background: #f3f3f3; }
+          .total { font-weight: 700; margin-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <h1>Итоги дня</h1>
+        <p>Дата: ${escapeHtml(selectedDate)}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Ответственный</th>
+              <th>Задача</th>
+              <th>Время</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total">Итого выполнено часов: ${fmt(totalHours)}</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 
-function parseCsv(text, delimiter) {
+function getTaskFromRaw(task) {
+  const value = String(task?.taskType || task?.taskName || "").trim();
+  return value || "Без типа";
+}
+
+function getPalletPeriodConfig(periodKey, selectedDate) {
+  if (periodKey === "week") {
+    const weekRange = getWeekMonFriRange(selectedDate);
+    return {
+      start: weekRange.start,
+      end: weekRange.end,
+      weekdaysOnly: true,
+      label: `Неделя (пн-пт): ${formatDateRu(weekRange.start)} - ${formatDateRu(weekRange.end)}`,
+    };
+  }
+
+  if (periodKey === "month") {
+    const monthRange = getMonthRange(selectedDate);
+    return {
+      start: monthRange.start,
+      end: monthRange.end,
+      weekdaysOnly: false,
+      label: `Месяц: ${formatDateRu(monthRange.start)} - ${formatDateRu(monthRange.end)}`,
+    };
+  }
+
+  if (periodKey === "quarter") {
+    const quarterRange = getQuarterRange(selectedDate);
+    return {
+      start: quarterRange.start,
+      end: quarterRange.end,
+      weekdaysOnly: false,
+      label: `Квартал: ${formatDateRu(quarterRange.start)} - ${formatDateRu(quarterRange.end)}`,
+    };
+  }
+
+  const yearRange = getYearRange(selectedDate);
+  return {
+    start: yearRange.start,
+    end: yearRange.end,
+    weekdaysOnly: false,
+    label: `Год: ${formatDateRu(yearRange.start)} - ${formatDateRu(yearRange.end)}`,
+  };
+}
+
+function summarizePalletPeriod(period) {
+  const rows = getPalletDailyRows(period.start, period.end, { weekdaysOnly: period.weekdaysOnly });
+  const totals = sumPalletRows(rows);
+  return {
+    label: period.label,
+    inbound: totals.inbound,
+    outbound: totals.outbound,
+    balance: totals.inbound - totals.outbound,
+  };
+}
+
+function getPalletDailyRows(startIso, endIso, options = {}) {
   const rows = [];
-  let currentCell = "";
-  let currentRow = [];
-  let inQuotes = false;
+  const entriesByDate = new Map(
+    state.palletEntries.map((entry) => [entry.date, entry]),
+  );
+  const dates = listIsoDatesInRange(startIso, endIso);
 
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-    const next = text[i + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        currentCell += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
+  for (const date of dates) {
+    if (options.weekdaysOnly && !isWeekdayIso(date)) {
       continue;
     }
 
-    if (!inQuotes && char === delimiter) {
-      currentRow.push(currentCell.trim());
-      currentCell = "";
-      continue;
-    }
-
-    if (!inQuotes && (char === "\n" || char === "\r")) {
-      if (char === "\r" && next === "\n") i += 1;
-      currentRow.push(currentCell.trim());
-      currentCell = "";
-      rows.push(currentRow);
-      currentRow = [];
-      continue;
-    }
-
-    currentCell += char;
+    const entry = entriesByDate.get(date);
+    rows.push({
+      date,
+      inbound: entry ? entry.inbound : 0,
+      outbound: entry ? entry.outbound : 0,
+    });
   }
 
-  if (currentCell.length > 0 || currentRow.length > 0) {
-    currentRow.push(currentCell.trim());
-    rows.push(currentRow);
-  }
-
-  return rows.filter((row) => row.some((cell) => cell !== ""));
+  return rows;
 }
 
-function findColumn(headers, candidates) {
-  return headers.findIndex((header) => candidates.some((candidate) => header.includes(candidate)));
+function sumPalletRows(rows) {
+  return rows.reduce((sum, row) => ({
+    inbound: sum.inbound + row.inbound,
+    outbound: sum.outbound + row.outbound,
+  }), { inbound: 0, outbound: 0 });
 }
 
-function parseAmount(raw) {
-  let cleaned = String(raw || "").trim().replace(/\s/g, "").replace(/[^\d,.-]/g, "");
-  if (!cleaned) return null;
-
-  // Supports both 1,234.56 and 1.234,56 formats.
-  if (cleaned.includes(",") && cleaned.includes(".")) {
-    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
-      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
-    } else {
-      cleaned = cleaned.replace(/,/g, "");
-    }
-  } else if (cleaned.includes(",")) {
-    cleaned = cleaned.replace(",", ".");
+function parsePalletInput(value) {
+  const raw = String(value).trim().replace(",", ".");
+  if (!raw) {
+    return 0;
   }
 
-  const value = Number(cleaned);
-  return Number.isFinite(value) ? value : null;
-}
-
-function parseFlexibleDate(raw) {
-  if (!raw) return null;
-
-  const clean = raw.trim();
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
-    const date = new Date(`${clean}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  const parts = clean.split(/[./-]/).map((item) => item.trim());
-  if (parts.length !== 3) return null;
-
-  let day;
-  let month;
-  let year;
-
-  if (parts[0].length === 4) {
-    year = Number(parts[0]);
-    month = Number(parts[1]);
-    day = Number(parts[2]);
-  } else {
-    day = Number(parts[0]);
-    month = Number(parts[1]);
-    year = Number(parts[2]);
-  }
-
-  const date = new Date(year, month - 1, day);
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
     return null;
   }
 
-  return date;
+  return Math.floor(parsed);
 }
 
-function resolveOperationType(typeRaw, amountValue, defaultGroup) {
-  const normalized = normalizeText(typeRaw);
+function getWeekMonFriRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const day = date.getDay();
+  const offsetToMonday = day === 0 ? -6 : (1 - day);
 
-  if (normalized.includes("поступ")) return "Поступление";
-  if (normalized.includes("выбыт") || normalized.includes("расход")) return "Выбытие";
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + offsetToMonday);
 
-  if (defaultGroup === "Поступление" || defaultGroup === "Выбытие") return defaultGroup;
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
 
-  return amountValue < 0 ? "Выбытие" : "Поступление";
-}
-
-function findArticle(input) {
-  const normalized = normalizeText(input);
-
-  if (articleByName.has(normalized)) {
-    return articleByName.get(normalized);
-  }
-
-  for (const [articleName, row] of articleByName.entries()) {
-    if (normalized.includes(articleName) || articleName.includes(normalized)) {
-      return row;
-    }
-  }
-
-  return null;
-}
-
-function renderReport() {
-  const filteredOperations = getFilteredOperations();
-  state.filteredOperations = filteredOperations;
-
-  const { reportRows, totalsByActivity, grandTotals } = aggregateByArticle(filteredOperations);
-  state.reportRows = reportRows;
-
-  const monthRows = aggregateByMonth(filteredOperations);
-  state.monthRows = monthRows;
-
-  const unknownCount = filteredOperations.filter((op) => op.activity === "Не определено").length;
-  renderMetrics(grandTotals, filteredOperations.length, unknownCount);
-  renderReportTable(reportRows, totalsByActivity, grandTotals);
-  renderMonthTable(monthRows);
-}
-
-function getFilteredOperations() {
-  const from = dateFromInput.value ? parseFlexibleDate(dateFromInput.value) : null;
-  const to = dateToInput.value ? parseFlexibleDate(dateToInput.value) : null;
-  const activity = activityFilter.value;
-
-  return state.operations.filter((op) => {
-    const inFromRange = !from || op.dateObj >= from;
-    const inToRange = !to || op.dateObj <= to;
-    const activityOk = activity === "all" || op.activity === activity;
-
-    return inFromRange && inToRange && activityOk;
-  });
-}
-
-function aggregateByArticle(operations) {
-  const grouped = new Map();
-
-  operations.forEach((op) => {
-    const key = `${op.activity}___${op.article}`;
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        activity: op.activity,
-        article: op.article,
-        inAmount: 0,
-        outAmount: 0,
-        count: 0,
-      });
-    }
-
-    const bucket = grouped.get(key);
-    if (op.direction === "Поступление") bucket.inAmount += op.amount;
-    else bucket.outAmount += op.amount;
-    bucket.count += 1;
-  });
-
-  const reportRows = [...grouped.values()].map((row) => ({
-    ...row,
-    net: row.inAmount - row.outAmount,
-  }));
-
-  reportRows.sort((a, b) => {
-    const activityOrder = a.activity.localeCompare(b.activity, "ru");
-    if (activityOrder !== 0) return activityOrder;
-    return a.article.localeCompare(b.article, "ru");
-  });
-
-  const totalsByActivity = new Map();
-  reportRows.forEach((row) => {
-    if (!totalsByActivity.has(row.activity)) {
-      totalsByActivity.set(row.activity, { inAmount: 0, outAmount: 0, net: 0, count: 0 });
-    }
-    const totals = totalsByActivity.get(row.activity);
-    totals.inAmount += row.inAmount;
-    totals.outAmount += row.outAmount;
-    totals.net += row.net;
-    totals.count += row.count;
-  });
-
-  const grandTotals = {
-    inAmount: reportRows.reduce((sum, row) => sum + row.inAmount, 0),
-    outAmount: reportRows.reduce((sum, row) => sum + row.outAmount, 0),
-    net: reportRows.reduce((sum, row) => sum + row.net, 0),
-    count: reportRows.reduce((sum, row) => sum + row.count, 0),
+  return {
+    start: dateToIso(monday),
+    end: dateToIso(friday),
   };
-
-  return { reportRows, totalsByActivity, grandTotals };
 }
 
-function aggregateByMonth(operations) {
-  const monthMap = new Map();
+function getMonthRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const year = date.getFullYear();
+  const month = date.getMonth();
 
-  operations.forEach((op) => {
-    const monthKey = `${op.dateObj.getFullYear()}-${String(op.dateObj.getMonth() + 1).padStart(2, "0")}`;
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0);
 
-    if (!monthMap.has(monthKey)) {
-      monthMap.set(monthKey, { month: monthKey, inAmount: 0, outAmount: 0 });
-    }
-
-    const bucket = monthMap.get(monthKey);
-    if (op.direction === "Поступление") bucket.inAmount += op.amount;
-    else bucket.outAmount += op.amount;
-  });
-
-  return [...monthMap.values()]
-    .map((row) => ({ ...row, net: row.inAmount - row.outAmount }))
-    .sort((a, b) => a.month.localeCompare(b.month));
+  return {
+    start: dateToIso(start),
+    end: dateToIso(end),
+  };
 }
 
-function renderMetrics(totals, operationCount, unknownCount) {
-  reportMetrics.innerHTML = `
-    <article class="metric"><div class="label">Операций</div><div class="value">${operationCount}</div></article>
-    <article class="metric"><div class="label">Поступления</div><div class="value">${formatMoney(totals.inAmount)}</div></article>
-    <article class="metric"><div class="label">Выбытия</div><div class="value">${formatMoney(totals.outAmount)}</div></article>
-    <article class="metric"><div class="label">Чистый поток</div><div class="value">${formatMoney(totals.net)}</div></article>
-    <article class="metric"><div class="label">Не сопоставлено со справочником</div><div class="value">${unknownCount}</div></article>
-  `;
+function getQuarterRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const year = date.getFullYear();
+  const quarterStartMonth = Math.floor(date.getMonth() / 3) * 3;
+
+  const start = new Date(year, quarterStartMonth, 1);
+  const end = new Date(year, quarterStartMonth + 3, 0);
+
+  return {
+    start: dateToIso(start),
+    end: dateToIso(end),
+  };
 }
 
-function renderReportTable(rows, totalsByActivity, grandTotals) {
-  if (rows.length === 0) {
-    reportTableBody.innerHTML = `<tr><td colspan="6" class="empty">Загрузите CSV операций для расчета ДДС.</td></tr>`;
-    return;
+function getYearRange(isoDate) {
+  const date = isoToDate(isoDate);
+  const year = date.getFullYear();
+
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`,
+  };
+}
+
+function listIsoDatesInRange(startIso, endIso) {
+  const start = isoToDate(startIso);
+  const end = isoToDate(endIso);
+  const dates = [];
+
+  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    dates.push(dateToIso(cursor));
   }
 
-  let html = "";
-
-  rows.forEach((row, index) => {
-    html += `
-      <tr>
-        <td>${escapeHtml(row.activity)}</td>
-        <td>${escapeHtml(row.article)}</td>
-        <td>${formatMoney(row.inAmount)}</td>
-        <td>${formatMoney(row.outAmount)}</td>
-        <td>${formatMoney(row.net)}</td>
-        <td>${row.count}</td>
-      </tr>
-    `;
-
-    const nextActivity = rows[index + 1]?.activity;
-    if (row.activity !== nextActivity) {
-      const t = totalsByActivity.get(row.activity);
-      html += `
-        <tr class="section-total">
-          <td colspan="2">Итого: ${escapeHtml(row.activity)}</td>
-          <td>${formatMoney(t.inAmount)}</td>
-          <td>${formatMoney(t.outAmount)}</td>
-          <td>${formatMoney(t.net)}</td>
-          <td>${t.count}</td>
-        </tr>
-      `;
-    }
-  });
-
-  html += `
-    <tr class="grand-total">
-      <td colspan="2">Итого по ДДС</td>
-      <td>${formatMoney(grandTotals.inAmount)}</td>
-      <td>${formatMoney(grandTotals.outAmount)}</td>
-      <td>${formatMoney(grandTotals.net)}</td>
-      <td>${grandTotals.count}</td>
-    </tr>
-  `;
-
-  reportTableBody.innerHTML = html;
+  return dates;
 }
 
-function renderMonthTable(monthRows) {
-  if (monthRows.length === 0) {
-    monthTableBody.innerHTML = `<tr><td colspan="4" class="empty">Нет данных.</td></tr>`;
-    return;
+function isWeekdayIso(isoDate) {
+  const day = isoToDate(isoDate).getDay();
+  return day >= 1 && day <= 5;
+}
+
+function isoToDate(isoDate) {
+  const [year, month, day] = String(isoDate).split("-").map((part) => Number(part));
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+function dateToIso(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateRu(isoDate) {
+  const [year, month, day] = String(isoDate).split("-");
+  if (!year || !month || !day) {
+    return String(isoDate);
   }
 
-  monthTableBody.innerHTML = monthRows
-    .map(
-      (row) => `
-      <tr>
-        <td>${row.month}</td>
-        <td>${formatMoney(row.inAmount)}</td>
-        <td>${formatMoney(row.outAmount)}</td>
-        <td>${formatMoney(row.net)}</td>
-      </tr>`
-    )
-    .join("");
+  return `${day}.${month}.${year}`;
 }
 
-function renderDictionary() {
-  const query = normalizeText(dictionarySearch.value || "");
-
-  const filtered = articleRows.filter((row) => {
-    if (!query) return true;
-    return normalizeText(`${row.articleNoRaw} ${row.name} ${row.activity}`).includes(query);
-  });
-
-  dictionaryBody.innerHTML = filtered
-    .map(
-      (row) => `
-      <tr>
-        <td>${escapeHtml(row.articleNoRaw)}</td>
-        <td>${escapeHtml(row.name)}</td>
-        <td>${escapeHtml(row.group)}</td>
-        <td>${escapeHtml(row.activity)}</td>
-        <td><span class="badge ${row.status}">${statusLabel(row.status)}</span></td>
-      </tr>
-    `
-    )
-    .join("");
+function isIsoDateString(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value));
 }
 
-function resetFilters() {
-  dateFromInput.value = "";
-  dateToInput.value = "";
-  activityFilter.value = "all";
-  renderReport();
-}
-
-function downloadTemplateCsv() {
-  const blob = new Blob([SAMPLE_OPERATIONS], { type: "text/csv;charset=utf-8;" });
-  triggerDownload(blob, "dds-operations-template.csv");
-}
-
-function downloadReportCsv() {
-  if (state.reportRows.length === 0) {
-    fileStatus.textContent = "Сначала загрузите операции CSV, затем выгружайте отчет.";
-    return;
-  }
-
-  const lines = [["Вид деятельности", "Статья ДДС", "Поступления", "Выбытия", "Чистый поток", "Операций"]];
-
-  state.reportRows.forEach((row) => {
-    lines.push([
-      row.activity,
-      row.article,
-      formatNumberForCsv(row.inAmount),
-      formatNumberForCsv(row.outAmount),
-      formatNumberForCsv(row.net),
-      String(row.count),
-    ]);
-  });
-
-  const csv = lines
-    .map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(";"))
+function downloadCsv(filename, rows) {
+  const csvContent = rows
+    .map((row) => row.map((cell) => escapeCsv(String(cell))).join(";"))
     .join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  triggerDownload(blob, "dds-report.csv");
-}
-
-function triggerDownload(blob, fileName) {
+  const csvWithBom = `\uFEFF${csvContent}`;
+  const blob = new Blob([csvWithBom], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = fileName;
+  link.download = filename;
   document.body.append(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 }
 
-function toDateInputValue(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`;
+function escapeCsv(value) {
+  if (value.includes(";") || value.includes("\n") || value.includes("\"")) {
+    return `"${value.replaceAll("\"", "\"\"")}"`;
+  }
+  return value;
 }
 
-function formatMoney(value) {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  if (window.location.protocol !== "https:" && !isLocalhost) {
+    return;
+  }
+
+  navigator.serviceWorker.register("service-worker.js").catch(() => {
+    // Ignore failed registration on unsupported environments.
+  });
+}
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function fmt(value) {
+  return Number(value).toLocaleString("ru-RU", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(value || 0);
+  });
 }
 
-function formatNumberForCsv(value) {
-  return Number(value || 0).toFixed(2).replace(".", ",");
+function todayIso() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
-function normalizeText(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replaceAll("ё", "е")
-    .replace(/\s+/g, " ")
-    .trim();
+function id() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function statusLabel(status) {
-  if (status === "DELETE") return "Удалить";
-  if (status === "RENAME") return "Переименовать";
-  if (status === "INACTIVE") return "Неактуально";
-  return "Активно";
-}
-
-function escapeHtml(value) {
-  return String(value || "")
+function escapeHtml(text) {
+  return String(text)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")

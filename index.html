@@ -1,123 +1,210 @@
 <!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DDS MVP</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <main class="app">
-      <header class="hero">
-        <h1>ДДС отчет (MVP)</h1>
-        <p>Загрузите операции CSV и получите отчет ДДС по статьям, видам деятельности и месяцам.</p>
-      </header>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1f6f5f">
+  <title>Lager Plan</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="day">
+  <header class="topbar">
+    <h1>Lager Plan</h1>
+    <p>Планирование задач склада на день и неделю</p>
+    <nav class="topnav">
+      <a class="nav-btn nav-active" href="index.html">День</a>
+      <a class="nav-btn" href="week.html">Неделя</a>
+      <a class="nav-btn" href="settings.html">Настройки</a>
+    </nav>
+  </header>
 
-      <section class="card importer">
-        <h2>1. Загрузка операций</h2>
-        <p class="hint">
-          Ожидаемые поля CSV: <code>Дата</code>, <code>Статья ДДС</code>, <code>Сумма</code>,
-          <code>Группа</code> (опционально: Поступление/Выбытие).
-        </p>
-
-        <div class="import-actions">
-          <label class="file-field">
-            <span>Файл операций CSV</span>
-            <input id="operationsFile" type="file" accept=".csv,text/csv" />
-          </label>
-          <button id="loadSampleBtn" type="button" class="secondary">Загрузить пример</button>
-          <button id="downloadTemplateBtn" type="button" class="secondary">Скачать шаблон CSV</button>
-        </div>
-
-        <p id="fileStatus" class="status">Файл не загружен.</p>
-      </section>
-
-      <section class="card controls">
-        <h2>2. Фильтры отчета</h2>
-        <div class="controls-grid">
-          <label>
-            Дата с
-            <input id="dateFrom" type="date" />
-          </label>
-
-          <label>
-            Дата по
-            <input id="dateTo" type="date" />
-          </label>
-
-          <label>
-            Вид деятельности
-            <select id="activityFilter">
-              <option value="all">Все</option>
-            </select>
-          </label>
-
-          <button id="resetFilters" type="button" class="secondary">Сбросить фильтры</button>
-          <button id="downloadReportCsv" type="button">Скачать отчет CSV</button>
-        </div>
-      </section>
-
-      <section class="metrics" id="reportMetrics"></section>
-
-      <section class="table-card">
-        <h2>3. Отчет ДДС по статьям</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Вид деятельности</th>
-                <th>Статья ДДС</th>
-                <th>Поступления</th>
-                <th>Выбытия</th>
-                <th>Чистый поток</th>
-                <th>Операций</th>
-              </tr>
-            </thead>
-            <tbody id="reportTableBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="table-card">
-        <h2>4. Сводка по месяцам</h2>
-        <div class="table-wrap small">
-          <table>
-            <thead>
-              <tr>
-                <th>Месяц</th>
-                <th>Поступления</th>
-                <th>Выбытия</th>
-                <th>Чистый поток</th>
-              </tr>
-            </thead>
-            <tbody id="monthTableBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <details class="card dictionary" open>
-        <summary>Справочник статей ДДС (вспомогательно)</summary>
+  <main class="container">
+    <section id="dayPlanSection" class="panel">
+      <h2>План на день</h2>
+      <div class="grid3">
         <label>
-          Поиск по справочнику
-          <input id="dictionarySearch" type="search" placeholder="Название статьи" />
+          Дата
+          <input id="selectedDate" type="date">
         </label>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>№ статьи</th>
-                <th>Статья ДДС</th>
-                <th>Группа</th>
-                <th>Вид деятельности</th>
-                <th>Статус</th>
-              </tr>
-            </thead>
-            <tbody id="dictionaryBody"></tbody>
-          </table>
+        <label>
+          Фильтр сотрудника
+          <select id="dayEmployeeFilter"></select>
+        </label>
+        <label>
+          Фильтр типа задачи
+          <select id="dayTaskTypeFilter"></select>
+        </label>
+      </div>
+
+      <form id="dayTaskForm" class="inline-form day-form">
+        <select id="dayEmployee" required></select>
+        <select id="dayTaskType" required></select>
+        <select id="dayHours" required></select>
+        <input id="dayOrder" placeholder="Номер заказа / комментарий">
+        <button id="daySubmitBtn" type="submit" class="btn">Добавить в день</button>
+        <button id="cancelDayEditBtn" type="button" class="btn muted" hidden>Отмена</button>
+      </form>
+
+      <div class="actions-row">
+        <button id="printEmployeePlanBtn" class="btn secondary">Печать плана сотрудника</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Задача</th>
+            <th>Планируемое время</th>
+            <th>Номер / комментарий</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="dayTasksBody"></tbody>
+      </table>
+      <div class="actions-row after-table">
+        <button id="clearCompletedDayBtn" class="btn danger" type="button">Удалить выполненные задачи из списка</button>
+      </div>
+    </section>
+
+    <section id="dayCalcSection" class="panel">
+      <h2>Расчет загрузки (день)</h2>
+      <div class="calc-controls">
+        <label>
+          Контроль по сотруднику
+          <select id="calcEmployeeFilter"></select>
+        </label>
+      </div>
+      <div id="calcSummary" class="calc-grid"></div>
+      <div id="calcEmployeeFreeList" class="calc-breakdown"></div>
+      <div id="calcTaskTypeBreakdown" class="calc-breakdown"></div>
+      <div id="calcStatus" class="status"></div>
+    </section>
+
+    <section id="palletSection" class="panel">
+      <h2>Паллеты (день и итоги)</h2>
+      <p class="pallet-date-note">Учет за дату: <strong id="palletDateLabel"></strong></p>
+      <form id="palletForm" class="inline-form pallet-form">
+        <input id="palletInbound" type="number" min="0" step="1" placeholder="Пришло паллет">
+        <input id="palletOutbound" type="number" min="0" step="1" placeholder="Отгружено паллет">
+        <button id="savePalletBtn" type="submit" class="btn">Сохранить паллеты за день</button>
+      </form>
+      <div id="palletStatus" class="pallet-note"></div>
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Период</th>
+            <th class="num-head">Пришло</th>
+            <th class="num-head">Отгружено</th>
+            <th class="num-head">Итог</th>
+          </tr>
+        </thead>
+        <tbody id="palletSummaryBody"></tbody>
+      </table>
+      <div class="actions-row after-table">
+        <button id="exportPalletWeekBtn" class="btn secondary" type="button">Excel: неделя (пн-пт)</button>
+        <button id="exportPalletMonthBtn" class="btn secondary" type="button">Excel: месяц</button>
+        <button id="exportPalletQuarterBtn" class="btn secondary" type="button">Excel: квартал</button>
+        <button id="exportPalletYearBtn" class="btn secondary" type="button">Excel: год</button>
+      </div>
+    </section>
+
+    <section id="weekPlanSection" class="panel">
+      <h2>План на неделю</h2>
+      <form id="weekTaskForm" class="inline-form week-form">
+        <select id="weekTaskType" required></select>
+        <input id="weekHours" type="number" min="0" step="0.25" placeholder="Часы" required>
+        <input id="weekComment" placeholder="Комментарий">
+        <button id="weekSubmitBtn" type="submit" class="btn">Добавить в неделю</button>
+        <button id="cancelWeekEditBtn" type="button" class="btn muted" hidden>Отмена</button>
+      </form>
+      <div class="actions-row">
+        <button id="printWeekCompletedBtn" class="btn muted" type="button">Печать закрытых задач недели</button>
+        <button id="printWeekPlanBtn" class="btn secondary" type="button">Печать всего плана недели</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Задача</th>
+            <th>Часы</th>
+            <th>Комментарий</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="weekTasksBody"></tbody>
+      </table>
+    </section>
+
+    <section id="weekCalcSection" class="panel">
+      <h2>Расчет загрузки (неделя)</h2>
+      <div id="calcWeekSummary" class="calc-grid"></div>
+      <div id="calcWeekStatus" class="status"></div>
+    </section>
+
+    <section id="settingsSection" class="panel">
+      <details class="settings-details settings-group">
+        <summary class="settings-summary">Сотрудники</summary>
+        <div class="settings-content">
+          <form id="employeeForm" class="inline-form">
+            <input id="employeeName" placeholder="Имя" required>
+            <div></div>
+            <button type="submit" class="btn">Добавить</button>
+          </form>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Сотрудник</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="employeesBody"></tbody>
+            </table>
+          </div>
         </div>
       </details>
-    </main>
 
-    <script src="./app.js"></script>
-  </body>
+      <details class="settings-details settings-group">
+        <summary class="settings-summary">Типы задач</summary>
+        <div class="settings-content">
+          <form id="taskTypeForm" class="inline-form">
+            <input id="taskTypeName" placeholder="Новый тип задачи" required>
+            <div></div>
+            <button type="submit" class="btn">Добавить тип</button>
+          </form>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Тип задачи</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="taskTypesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-details settings-group">
+        <summary class="settings-summary">Базовые настройки</summary>
+        <div class="settings-content">
+          <div class="grid2">
+            <label>
+              Сотрудников в смене (авто из списка)
+              <input id="staffCount" type="number" min="0" step="1" readonly>
+            </label>
+            <label>
+              Часов в день
+              <input id="hoursPerDay" type="number" min="0" step="0.25">
+            </label>
+          </div>
+          <button id="saveSettingsBtn" class="btn">Сохранить настройки</button>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
 </html>
